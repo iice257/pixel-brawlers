@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel Brawlers Viewer</title>
+  <style>
+    :root { --bg:#0a0714; --panel:#1a1030; --edge:#46327a; --ink:#e9e6ff; --muted:#8f89b8; --gold:#ffcf33; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:13px/1.5 ui-monospace,Consolas,monospace; }
+    header { display:flex; gap:16px; align-items:center; padding:12px 20px; border-bottom:1px solid var(--edge); position:sticky; top:0; background:var(--bg); z-index:5; flex-wrap:wrap; }
+    header h1 { margin:0; font-size:14px; color:var(--gold); letter-spacing:.06em; }
+    header label { color:var(--muted); display:flex; gap:6px; align-items:center; }
+    main { padding:20px; display:grid; gap:24px; max-width:1500px; margin:0 auto; }
+    section { background:var(--panel); border:1px solid var(--edge); padding:16px; }
+    h2 { margin:0 0 12px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
+    h3 { margin:0 0 6px; font-size:12px; color:var(--ink); }
+    .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+    .box { background:#000; padding:8px; border:1px solid var(--edge); }
+    .cap { color:var(--muted); font-size:11px; margin-top:4px; }
+    canvas, img { image-rendering: pixelated; display:block; }
+    button, select { background:#2a1b4d; color:var(--ink); border:1px solid var(--edge); padding:4px 10px; font:inherit; cursor:pointer; }
+    button:hover { border-color:var(--gold); }
+    .sw { display:inline-flex; flex-direction:column; align-items:center; width:64px; margin:0 6px 8px 0; cursor:pointer; }
+    .sw i { width:56px; height:24px; border:1px solid #000; outline:1px solid var(--edge); display:block; }
+    .sw span { font-size:10px; color:var(--muted); }
+    .grp { margin-right:20px; display:inline-block; vertical-align:top; }
+    .grp b { display:block; color:var(--muted); font-weight:normal; font-size:11px; margin-bottom:4px; }
+    #err { color:#ff6a5a; font-weight:bold; display:none; }
+    #hover { color:var(--ink); min-width:220px; }
+    .picks .sw { width:60px; }
+    #reference-wrap { overflow:auto; max-width:100%; max-height:560px; }
+    #refCanvas { cursor: crosshair; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PIXEL BRAWLERS / VIEWER</h1>
+    <label><input type="checkbox" id="outlineToggle" checked> preview baker outline</label>
+    <a style="color:var(--muted);margin-left:auto" href="./">game</a>
+  </header>
+  <main>
+    <section id="refSection">
+      <h2>Reference</h2>
+      <div class="row" style="margin-bottom:10px">
+        <label>zoom <input id="zoom" type="range" min="1" max="8" value="2" step="1"> <span id="zoomVal">2x</span></label>
+        <button data-crop="full">full image</button>
+        <button data-crop="teal">teal head</button>
+        <button data-crop="blond">blond head</button>
+        <span id="hover">hover a pixel</span>
+        <span id="err">reference failed to load: brainstorm/reference/characters-reference.png</span>
+      </div>
+      <div class="row">
+        <div id="reference-wrap" class="box"><canvas id="refCanvas"></canvas></div>
+        <div>
+          <h3>eyedropper picks (click a pixel; click a swatch to copy hex)</h3>
+          <div class="picks" id="picks"></div>
+        </div>
+      </div>
+    </section>
+    <section>
+      <h2>Compare: part at 8x vs matching reference crop (same height)</h2>
+      <div class="row" id="compare"></div>
+    </section>
+    <section>
+      <h2>Parts</h2>
+      <div id="parts"></div>
+    </section>
+    <section>
+      <h2>Palettes</h2>
+      <div id="palettes"></div>
+    </section>
+  </main>
+  <script type="module" src="src/viewer/viewer.js"></script>
+</body>
+</html>
