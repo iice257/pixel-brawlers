@@ -1,0 +1,11 @@
+{
+  "name": "pixel-brawlers",
+  "version": "0.1.0",
+  "description": "An original 2D pixel fighting game demo for the browser.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve -l 5173 ."
+  },
+  "license": "MIT"
+}

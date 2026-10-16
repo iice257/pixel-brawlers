@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel Brawlers</title>
+  <meta name="description" content="An original 2D pixel fighting game demo with story mode, 4 fighters and local versus. Plays in the browser.">
+  <meta property="og:title" content="Pixel Brawlers">
+  <meta property="og:description" content="An original 2D pixel fighting game demo. Play it in your browser.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23100d20'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%23ffcf33'/%3E%3Crect x='6' y='6' width='4' height='4' fill='%23100d20'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="bar">
+    <span class="brand">PIXEL BRAWLERS</span>
+    <span class="tag">Playable demo</span>
+    <a class="link" href="https://github.com/iice257/pixel-brawlers" target="_blank" rel="noopener">Source</a>
+  </header>
+  <main id="stage">
+    <div class="frame"><canvas id="game" aria-label="Pixel Brawlers game"></canvas></div>
+    <p class="hint"><b>P1</b> A/D move · W jump · S block · J punch · K kick · L special &nbsp;|&nbsp; <b>P2</b> arrows · Z X C &nbsp;|&nbsp; <b>F</b> fullscreen</p>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
