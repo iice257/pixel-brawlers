@@ -8,7 +8,7 @@ An original 2D pixel fighting game demo that runs in the browser. Four fighters,
 
 ## Play
 
-Hosted build: _GitHub Pages link goes here once deployed._
+Hosted build: <https://iice257.github.io/pixel-brawlers/>
 
 Run it locally (any static server works):
 
