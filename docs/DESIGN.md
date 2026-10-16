@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-10-16):** the v0.1 scaffold design below is replaced by `ART_BIBLE.md`, `GAME_DESIGN.md`, `STAGES_AND_FX.md` and `BUILD_PLAN.md`. Kept for history until task 6.12.
+
 # Pixel Brawlers - Design
 
 ## Intent
