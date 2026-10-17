@@ -80,7 +80,7 @@ Local space, facing right, origin at feet centre, `y` up. Box = `{x, y, w, h}` w
 - **Hitboxes** per move per active frame range. A move can have several `hits` (multi-hit).
 - Boxes drawn in debug overlay (`F2`; in the training room it's the default): blue pushbox, green hurtboxes, red hitboxes, yellow throw box.
 - **Hit detection** each tick after all movement: for each attacker hitbox vs defender hurtboxes; first overlap wins; each `hit` of a move can connect once per defender; simultaneous hits = trade (both hit, both get hitstop; if both die, double KO -> draw rule).
-- **Throw box**: `{x:0, y:0, w:throwRange, h:80}` (range 34 default, BASALT 40). Throws connect only vs grounded, non-invulnerable, not in hitstun/blockstun... a defender in blockstun *can* be thrown only after blockstun ends (no tick-throw gaps > 0 beyond block recovery). Throw tech: if the defender presses LP+LK within **7 ticks** of being grabbed, both are pushed apart with 0 damage.
+- **Throw box**: `{x:0, y:0, w:throwRange, h:80}` (range 42 default, BASALT 48). Throws connect only vs grounded, non-invulnerable, not in hitstun/blockstun... a defender in blockstun *can* be thrown only after blockstun ends (no tick-throw gaps > 0 beyond block recovery). Throw tech: if the defender presses LP+LK within **7 ticks** of being grabbed, both are pushed apart with 0 damage.
 
 ### 2.3 Fighter states
 
@@ -164,7 +164,7 @@ Notation: `S/A/R` = startup/active/recovery ticks (first active tick is S+1). `d
 | j.HP | air HP | 7/6/- | 60 | H | 16/12 | | 3 | 4,14,38,36 | | downward angle |
 | j.LK | air LK | 4/10/- | 35 | H | 12/9 | | 2 | 2,10,36,22 | | cross-up friendly |
 | j.HK | air HK | 9/6/- | 70 | H | KD soft | | 4 | 2,8,46,28 | | |
-| Throw | LP+LK close | 5/2/24 whiff | 100 | T | n/a | | | throw box 34 | | hard KD, forward or back (hold 4 = back throw: swap sides) |
+| Throw | LP+LK close | 5/2/24 whiff | 100 | T | n/a | | | throw box 42 | | hard KD, forward or back (hold 4 = back throw: swap sides) |
 
 Air normals: recovery is landing lag of 3 ticks (whiffed) or none if they hit; `S` counts from takeoff tick. Jump-ins that land during active frames get "deep hit" +2 hitstun.
 
@@ -182,11 +182,11 @@ Shared stats: all have 1000 HP unless noted. `pwr` = damage multiplier on outgoi
 
 | | HP | pwr | def | walk f/b | jump | dash | throw range | height |
 |---|---|---|---|---|---|---|---|---|
-| SURGE | 1000 | 1.00 | 1.00 | 2.1 / 1.7 | 1.00 | 14t / fast | 34 | 100 |
-| BRICK | 1000 | 1.10 | 1.00 | 1.9 / 1.6 | 0.97 | 14t | 34 | 102 |
-| JUNO | 950 | 0.95 | 1.05 | 2.4 / 2.0 | 1.10 | 12t / fastest | 32 | 92 |
-| BASALT | 1100 | 1.20 | 0.92 | 1.5 / 1.2 | 0.85 (gravity 0.52) | 18t / slow | 40 | 114 |
-| VANTA | 1400 | 1.10 | 0.9 | 2.0 / 1.8 | 1.0 | teleport step | 36 | 112 |
+| SURGE | 1000 | 1.00 | 1.00 | 2.1 / 1.7 | 1.00 | 14t / fast | 42 | 100 |
+| BRICK | 1000 | 1.10 | 1.00 | 1.9 / 1.6 | 0.97 | 14t | 42 | 102 |
+| JUNO | 950 | 0.95 | 1.05 | 2.4 / 2.0 | 1.10 | 12t / fastest | 40 | 92 |
+| BASALT | 1100 | 1.20 | 0.92 | 1.5 / 1.2 | 0.85 (gravity 0.52) | 18t / slow | 48 | 114 |
+| VANTA | 1400 | 1.10 | 0.9 | 2.0 / 1.8 | 1.0 | teleport step | 44 | 112 |
 
 Normals modifiers per fighter (override the template; unspecified = template):
 
