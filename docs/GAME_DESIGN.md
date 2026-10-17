@@ -69,7 +69,7 @@ Priority when several moves match: super > EX > special > command normal > norma
 | Walk | per fighter, see section 8 |
 | Dash fwd | 14 ticks, 4.4 px/t initial decaying; back dash 16 ticks, 3.6 px/t, **invulnerable (strike) ticks 1-6**; double-tap 6/4 within 12 ticks, no dash from block/hit |
 | Knockback decay | multiply vx by 0.86 per tick on the ground |
-| Corner push | when attacker is in the corner, defender's pushback is transferred to attacker (attacker is pushed back by 60% of it) |
+| Corner push | when attacker is in the corner, defender's pushback is transferred to attacker (attacker is pushed back by 40% of it) |
 
 ### 2.2 Boxes
 
