@@ -201,3 +201,14 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - `/` now boots the new engine. Bare `/` shows the temporary menu (`src/ui/menu.js`): VERSUS 2P, VS CPU (dummy), TRAINING (stub, sandbox sim with a dummy), LEGACY GAME (`?legacy=1`). Any QA param (`p1`, `p2`, `shot`, `match`, `dummy`, `rounds`) skips the menu. Esc in a match returns to it.
 - `tests/soak.test.mjs`: 300 seeded random-pad matches (best of 3, all four SURGE/BRICK pairings), no exceptions, no non-finite state, every match over within 20000 ticks. Longest run: 18516 ticks. The pad is `src/ui/qa_pad.js`, biased toward the opponent: an unbiased random pad stalls and rounds run out the 99 s clock (a drawn round gives both sides a win), so a 5-round match legitimately passes 20000 ticks.
 - `media/gameplay.gif`: 10 s, 12 fps, frames from `?shot=replay&seed=3&tick=N` (headless Edge screenshots, ffmpeg).
+
+## R1 Controls, modes, CPU
+
+- New layout (see README): P1/solo WASD + U I / J K + Space block + O throw; P2 arrows + numpad. Solo modes read every layout and every pad. Bindings are remappable and saved (`src/core/bindings.js`, `src/core/save.js`); conflicts are flagged per profile and across P1/P2. Presets: STANDARD, LEFT-HAND, ARROW-ONLY.
+- `src/ui/modes.js` turns the menu config into one raw input pair per tick (versus, cpu, watch, training, qa dummy). Training: Tab swaps the controlled fighter, dummy stand/crouch/jump/block/cpu, infinite health (never below 250, refills after 40 calm ticks), boxes on, input history.
+- CPU (`src/ai/ai.js`, `src/data/ai.js`): tiers 1-8 (Easy 1-2, Normal 3-4, Hard 5-6, Brutal 7-8). Perception is the opponent's visible state delayed by `reaction` ticks (28 down to 6); it never reads input buffers. Neutral play comes from the `AI_ACTIONS` registry; reactions: block by hit level, anti-air 2HP, punish by recovery, chain on contact, throw tech, quick rise.
+- Measured: 8 beats 2 in 10/10; 3v1 0.70, 5v3 0.67, 7v5 0.92 over 60 matches. `tests/ai.test.mjs` asserts tier 8 beats tier 2 in >= 80% of 30 matches and soaks 8 tier pairs x 20 matches.
+- F1 cheat sheet is on for the first 3 finished matches (counter saved). The page hint line is generated from the live bindings.
+- Poses now bake behind a loading bar (276 poses for a SURGE/BRICK pair) so the first fight does not hitch.
+- Shake: heavy non-block hits now shake at half amplitude (3 px at most); KO still 8 px.
+- Stills: `media/qa/R1-*.png` (menu, setup, controls, training, pause).

@@ -112,8 +112,8 @@ test('shake: amplitude = clamp(dmg/12, 1, 6), duration = dmg/6 ticks, options of
     tickFx(fx, w);
     return fx.shake;
   };
-  assert.equal(hit('full').amp, 6);
-  assert.equal(hit('low').amp, 3);
+  assert.equal(hit('full').amp, 3);          // heavy non-block hits are halved (the KO event carries the big shake)
+  assert.equal(hit('low').amp, 1.5);
   assert.equal(hit('off').amp, 0);
   assert.equal(hit('full').total, 12);
 });

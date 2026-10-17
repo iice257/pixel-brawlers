@@ -3,6 +3,12 @@
 // F2 = box overlay, F3 = FPS / state panel, R = reset positions.
 import { W, H, FLOOR_Y, STAGE_W } from '../config2.js';
 import { createInput } from '../core/input.js';
+import { normalise, describe } from '../core/bindings.js';
+import { load, store } from '../core/save.js';
+import { createNav } from './nav.js';
+import { createControls } from './controls.js';
+import { createSession } from './modes.js';
+import { drawCheat, drawHistory, drawPause, drawLoading } from './overlays.js';
 import { createLoop } from '../core/loop.js';
 import { createWorld, step } from '../engine/world.js';
 import { boxesOf } from '../engine/fighter.js';
@@ -38,7 +44,7 @@ function baked(id, poseName) {
 }
 const LOCO = ['idle', 'walk_f', 'walk_b', 'crouch_in', 'crouch_hold', 'crouch_out', 'jump_prep', 'jump_rise', 'jump_apex', 'jump_fall', 'jump_land', 'jump_f', 'jump_b', 'dash_f', 'dash_b'];
 // Idle is baked up front; the rest is baked in ~6 ms slices after each frame so boot is instant (anything not ready yet bakes on demand).
-function prebake(ids) {
+function prebake(ids, budget = 6) {
   const queue = [];
   const seen = new Set();
   const add = (id, names) => { const a = spriteSet(id).anims; for (const n of names) for (const fr of a[n].frames) if (!seen.has(id + fr.pose)) { seen.add(id + fr.pose); queue.push([id, fr.pose]); } };
@@ -48,12 +54,12 @@ function prebake(ids) {
   for (const id of ids) add(id, Object.keys(spriteSet(id).anims));
   const stats = { total: queue.length, done: 0 };
   const slice = () => {
-    const end = performance.now() + 6;
+    const end = performance.now() + budget;
     while (queue.length && performance.now() < end) { const [id, p] = queue.shift(); baked(id, p); stats.done++; }
-    if (queue.length) requestAnimationFrame(slice);
+    if (queue.length) (budget > 6 ? setTimeout : requestAnimationFrame)(slice, 0);   // loading bar: don't wait for frames
   };
   for (const id of ids) baked(id, spriteSet(id).anims.idle.frames[0].pose);
-  requestAnimationFrame(slice);
+  (budget > 6 ? setTimeout : requestAnimationFrame)(slice, 0);
   return stats;
 }
 const poseOf = (f) => { const a = spriteSet(f.id).anims[f.anim]; return a.frames[frameAt(a, f.at)].pose; };
@@ -164,7 +170,7 @@ function drawPanel(ctx, world, stats, input) {
 }
 
 // ---------------------------------------------------------------------------------------------- boot
-export function boot(canvas, params = new URLSearchParams(location.search)) {
+export function boot(canvas, params = new URLSearchParams(location.search), menu = null) {
   const ctx = canvas.getContext('2d');
   canvas.width = W; canvas.height = H;
   const fit = () => {
@@ -178,43 +184,95 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
   };
   addEventListener('resize', fit);
   document.addEventListener('fullscreenchange', fit);
-  const hint = document.querySelector('.hint');
-  if (hint) hint.innerHTML = '<b>P1</b> WASD move · J K U I attack · L block &nbsp;|&nbsp; <b>P2</b> arrows · . / ; \' · , &nbsp;|&nbsp; <b>F2</b> boxes · <b>F3</b> stats · <b>R</b> restart · <b>Esc</b> menu · <b>F</b> fullscreen';
-  
-  const p1 = MODS[params.get('p1')] ? params.get('p1') : 'surge';
-  const p2 = MODS[params.get('p2')] ? params.get('p2') : 'brick';
-  const dummy = params.get('dummy') === '1';
-  // ?match=0 (or any ?shot=) runs the bare sandbox sim; otherwise a full match: ?rounds=1|3|5 (default 3)
-  const rounds = [1, 3, 5].includes(+params.get('rounds')) ? +params.get('rounds') : 3;
-  const sandbox = params.get('match') === '0' || (params.has('shot') && !['hud', 'ko', 'over', 'replay'].includes(params.get('shot')));
-  const newWorld = () => createWorld({ p1, p2, seed: 1, match: sandbox ? false : rounds });
+  // menu = { cfg, bindings } from the menu; QA params boot without it
+  const bindings = menu?.bindings ?? normalise(load('bindings', null));
+  const dummyQa = params.get('dummy') === '1';
+  const cfg = menu?.cfg ?? {
+    mode: dummyQa ? 'dummy' : 'versus', tier: 4, tier2: 4, dummy: 'stand',
+    p1: MODS[params.get('p1')] ? params.get('p1') : 'surge', p2: MODS[params.get('p2')] ? params.get('p2') : 'brick',
+    rounds: [1, 3, 5].includes(+params.get('rounds')) ? +params.get('rounds') : 3,
+  };
+  const { p1, p2 } = cfg;
+  const isShot = params.has('shot');
+  // ?match=0 (or any ?shot=) runs the bare sandbox sim; training is a sandbox too (no clock, no rounds); otherwise a full match
+  const sandbox = cfg.mode === 'training' || params.get('match') === '0' || (isShot && !['hud', 'ko', 'over', 'replay'].includes(params.get('shot')));
+  const newWorld = () => createWorld({ p1, p2, seed: 1, match: sandbox ? false : cfg.rounds });
   let world = newWorld();
   const hud = createHud();
   const fx = createFx();
   const stepW = (inputs) => { step(world, inputs); tickFx(fx, world); };   // every sim tick feeds the FX layer
-  const input = createInput();
-  let showBoxes = params.get('boxes') === '1', showPanel = params.get('panel') === '1';
+  const input = createInput(window, bindings);
+  const session = createSession(cfg, input);
+  const nav = createNav();
+  let showBoxes = params.get('boxes') === '1' || cfg.mode === 'training', showPanel = params.get('panel') === '1';
+  let matches = load('matches', 0), counted = false;
+  let showCheat = !isShot && matches < 3;
 
+  // the page hint line is generated from the live bindings
+  const hint = document.querySelector('.hint');
+  const writeHint = () => {
+    if (!hint) return;
+    const keys = '<b>F1</b> keys · <b>F2</b> boxes · <b>F3</b> stats · <b>R</b> restart · <b>Esc</b> pause · <b>F</b> fullscreen';
+    hint.innerHTML = session.humans().length === 2
+      ? `<b>P1</b> ${describe(bindings, 'p1')} &nbsp;|&nbsp; <b>P2</b> ${describe(bindings, 'p2')} &nbsp;|&nbsp; ${keys}`
+      : `<b>YOU</b> ${describe(bindings, 'p1')} &nbsp;|&nbsp; ${keys}`;
+  };
+  writeHint();
+
+  // pause overlay: RESUME / CONTROLS / RESTART / QUIT TO MENU
+  const PAUSE_ITEMS = ['RESUME', 'CONTROLS', 'RESTART', 'QUIT TO MENU'];
+  const ui = { paused: false, sel: 0, screen: 'menu', req: false, padPrev: false, t: 0 };
+  const controls = createControls(bindings, { onChange: (b) => { input.setBindings(b); store('bindings', b); writeHint(); }, onExit: () => { ui.screen = 'menu'; } });
+  const restart = () => { world = newWorld(); Object.assign(hud, createHud()); session.reset(); counted = false; };
+  const pauseNav = (ev) => {
+    if (ui.screen === 'controls') { controls.nav(ev); return; }
+    if (ev === 'up') ui.sel = (ui.sel + PAUSE_ITEMS.length - 1) % PAUSE_ITEMS.length;
+    else if (ev === 'down') ui.sel = (ui.sel + 1) % PAUSE_ITEMS.length;
+    else if (ev === 'back') ui.paused = false;
+    else if (ev === 'ok') {
+      if (ui.sel === 0) ui.paused = false;
+      else if (ui.sel === 1) ui.screen = 'controls';
+      else if (ui.sel === 2) { restart(); ui.paused = false; }
+      else location.search = '';
+    }
+  };
+
+  // Idle is baked at once; the rest bakes behind a loading bar (menu boots) so the first fight never hitches.
   const t0 = performance.now();
-  const bakeStats = prebake([p1, p2]);
+  const bakeStats = prebake([p1, p2], menu ? 14 : 6);
   const bakeMs = Math.round(performance.now() - t0);
+  const loading = () => !!menu && bakeStats.done < bakeStats.total;
 
   addEventListener('keydown', (e) => {
     if (e.repeat) return;
-    if (e.code === 'F2') showBoxes = !showBoxes;
+    if (e.code === 'F1') showCheat = !showCheat;
+    else if (e.code === 'F2') showBoxes = !showBoxes;
     else if (e.code === 'F3') showPanel = !showPanel;
-    else if (e.code === 'Escape' && !params.has('shot')) location.search = '';
-    else if (e.code === 'KeyR') { world = newWorld(); Object.assign(hud, createHud()); }
-    else if (e.code === 'Enter' && world.match?.phase === 'over') { world = newWorld(); Object.assign(hud, createHud()); }   // temp menu: result screen -> fresh match
+    else if ((e.code === 'Escape' || e.code === 'KeyP') && !isShot) ui.req = true;
+    else if (e.code === 'Tab') session.swap();
+    else if (e.code === 'KeyR' && !ui.paused) restart();
+    else if (e.code === 'Enter' && !ui.paused && world.match?.phase === 'over') restart();   // result screen -> fresh match
     else if (e.code === 'KeyF') { if (document.fullscreenElement) document.exitFullscreen(); else canvas.parentElement.requestFullscreen?.(); }
   });
 
   let frozen = false;
   const tickFn = () => {
-    if (frozen) return;
+    if (frozen || loading()) return;
+    const { events, keys } = nav.drain();
+    const start = input.pads().some((g) => g.buttons[9]?.pressed);
+    const startEdge = start && !ui.padPrev; ui.padPrev = start;
+    if (ui.paused) {
+      ui.req = false; ui.t++;
+      if (ui.screen === 'controls' && controls.listening) { if (keys.length) controls.key(keys[0]); }
+      else for (const ev of events) pauseNav(ev);
+      return;
+    }
+    if (ui.req || startEdge) { ui.req = false; ui.paused = true; ui.sel = 0; ui.screen = 'menu'; input.clear(); return; }
     input.poll();
-    stepW([input.read(0, { solo: dummy }), dummy ? NEUTRAL : input.read(1)]);
+    stepW(session.inputs(world));
+    session.tick(world);
     tickHud(hud, world);
+    if (!counted && world.match?.phase === 'over') { counted = true; matches++; store('matches', matches); }
   };
   const render = () => {
     ctx.imageSmoothingEnabled = false;
@@ -232,6 +290,10 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     drawHud(ctx, hud, world);
     if (showBoxes) drawBoxes(ctx, world, cam);
     if (showPanel) drawPanel(ctx, world, loop.stats, input);
+    if (cfg.mode === 'training') drawHistory(ctx, session);
+    if (showCheat && !ui.paused) drawCheat(ctx, bindings, session.humans());
+    if (ui.paused) { if (ui.screen === 'controls') controls.draw(ctx, input.pads().length); else drawPause(ctx, PAUSE_ITEMS, ui.sel, ui.t); }
+    if (loading()) drawLoading(ctx, bakeStats.done / Math.max(1, bakeStats.total), `${p1.toUpperCase()} VS ${p2.toUpperCase()}`);
   };
   const loop = createLoop({ step: tickFn, render });
   if (params.get('shot') === 'loco') {   // QA still: SURGE jumps forward over a crouching BRICK, then the sim freezes
@@ -304,7 +366,7 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     boxes(on = !showBoxes) { showBoxes = on; },
     panel(on = !showPanel) { showPanel = on; },
     place(p, x, y = 0) { world.fighters[p].x = x; world.fighters[p].y = y; },
-    reset() { world = newWorld(); },
+    reset() { restart(); },
     setHP(p, n) { world.fighters[p].hp = n; },
     setTimer(n) { if (world.match) { world.match.timer = n; world.match.tt = 0; } },
     setMeter(p, n) { world.fighters[p].meter = n; },

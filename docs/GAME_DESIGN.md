@@ -120,7 +120,7 @@ State machine rules:
 
 ### 2.6 Cancels, chains **[MVP]**
 
-- **Chain (MK-style) cancels:** LP -> LP -> 2LP -> HP; LK -> 2LK -> HK-class. Rule: a normal can cancel into a *different heavier or equal-weight different* normal from its first active tick through recovery tick 5 **only on hit or block**. Weight order: LP = LK < HP < HK. Each normal appears at most once per chain. Max chain length 4. Heavy normals are not chainable (they are the chain finisher) unless flagged `cancel:['special']`.
+- **Chain (MK-style) cancels:** LP -> 2LP -> HP; LK -> 2LK -> HK (each normal once, so LP -> LP is not a chain). Rule: a normal can cancel into a *different heavier or equal-weight different* normal from its first active tick through recovery tick 5 **only on hit or block**. Weight order: LP = LK < HP < HK. Each normal appears at most once per chain. Max chain length 4. Heavy normals are not chainable (they are the chain finisher) unless flagged `cancel:['special']`.
 - **Special cancels (SF-style):** flagged normals (`cancel: ['special','super']`) cancel into any special/EX/super during active or the first 6 ticks of recovery on hit or block. All 2HP/HP/2LP/LP/2LK flagged on all fighters (HK/2HK not).
 - **Jump cancel:** 2HP (launcher) can be cancelled into jump on hit: allows "launch -> jump -> air combo" (stretch **[STRETCH]**).
 - **Super cancel:** specials -> super on hit, costing the super meter.

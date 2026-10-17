@@ -64,7 +64,7 @@ async function modern() {
   const direct = ['p1', 'p2', 'shot', 'match', 'dummy', 'rounds'].some((k) => params.has(k));
   if (direct) { boot(canvas, params); return; }
   const { runMenu } = await import('./ui/menu.js');
-  boot(canvas, await runMenu(canvas));
+  boot(canvas, params, await runMenu(canvas));
 }
 
 if (params.get('legacy') === '1') legacy(); else modern();

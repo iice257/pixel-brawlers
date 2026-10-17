@@ -21,19 +21,21 @@ Open the address it prints (for example <http://localhost:3000>). Hosted build: 
 
 ## Controls
 
-| Action | Player 1 | Player 2 |
+| Action | Player 1 / solo | Player 2 |
 | --- | --- | --- |
 | Move / crouch / jump | W A S D | Arrow keys |
-| Light punch (LP) | J | . |
-| Heavy punch (HP) | K | / |
-| Light kick (LK) | U | ; |
-| Heavy kick (HK) | I | ' |
-| Block | L (or hold back) | , |
-| Throw | LP + LK together | . and ; together |
+| Light / heavy punch | U / I | Numpad 4 / 5 (or `[` / `]`) |
+| Light / heavy kick | J / K | Numpad 1 / 2 (or `;` / `'`) |
+| Block | Space or L (or hold back) | Numpad 0 (or `/`) |
+| Throw | O | Numpad 3 (or `.`) |
 
-`F` fullscreen, `F2` hitboxes, `F3` stats, `R` restart, `Esc` back to the menu, `Enter` after a match to rematch. Gamepads work too (see `/input-test.html`).
+In the single-player modes you can use either layout (arrows + Z X C V B N also works). Gamepad: X / Y punches, A / B kicks, LB or RB block, LT or RT throw, Start pause.
 
-What is in so far: walk, dash, jump, normals, blocking, throws with tech and quick-rise, chain cancels, combo scaling, juggles, round/match flow with KO and time-up, hit sparks, dust, screen shake and afterimages. What is not: special moves, meter use, AI opponent, more fighters, music, a real front end.
+`Esc` or `P` pause (resume, controls, restart, quit), `F1` key cheat sheet (on for your first 3 matches), `F2` hitboxes, `F3` stats, `F` fullscreen, `R` restart, `Tab` swaps the fighter you control in Training. Every key can be rebound on the Controls screen (keyboard diagram, presets, conflicts shown in red).
+
+Modes: VS CPU (8 difficulty tiers), 2 PLAYERS, TRAINING (dummy stand / crouch / jump / block / CPU, infinite health, boxes, input history), WATCH (CPU vs CPU), CONTROLS, LEGACY.
+
+What is in so far: walk, dash, jump, normals, blocking, throws with tech and quick-rise, chain cancels, combo scaling, juggles, round/match flow with KO and time-up, hit sparks, dust, screen shake and afterimages. What is not: special moves, meter use, more fighters, music, the final front end.
 
 ## Sprite viewer
 

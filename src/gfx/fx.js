@@ -63,7 +63,7 @@ function hitEvent(fx, e) {
     for (let i = 0; i < 6; i++) { const ang = (i / 6) * Math.PI * 2 + rnd(fx); spawn(fx, 'spk', e.x, e.y, { vx: Math.cos(ang) * 2.4, vy: Math.sin(ang) * 2.4 }); }
   } else spawn(fx, 'spark_light', e.x, e.y);
   if (!e.block) { const t = fx.tint[e.to]; t.white = 2; t.red = 4; }                // defender: white silhouette 2 ticks, then red tint 4
-  addShake(fx, shakeAmp(e.dmg, e.block), shakeTicks(e.dmg, e.block));
+  addShake(fx, shakeAmp(e.dmg, e.block) * (e.heavy && !e.block ? 0.5 : 1), shakeTicks(e.dmg, e.block));   // heavy hits shake at half amplitude; the KO event adds the big one
 }
 
 function koEvent(fx, e) {

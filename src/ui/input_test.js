@@ -1,5 +1,6 @@
 // /input-test.html: live view of what the input layer produces for both players (keyboard + gamepads).
-import { createInput, KEYMAPS } from '../core/input.js';
+import { createInput } from '../core/input.js';
+import { describe } from '../core/bindings.js';
 import { createLoop } from '../core/loop.js';
 import { BTN, BTN_LIST, createBuffer, pushInput, recent, pairLive, doubleTap, FWD, BACK, livePresses } from '../core/buffer.js';
 
@@ -23,10 +24,7 @@ for (const pl of players) {
     <p class="map">${mapText(pl.p)}</p>`;
   $('face' + pl.p).onclick = () => { pl.facing = -pl.facing; $('face' + pl.p).textContent = pl.facing > 0 ? 'facing → right' : 'facing ← left'; };
 }
-function mapText(p) {
-  const m = KEYMAPS[p], keys = (pick) => Object.entries(m).filter(([, v]) => pick(v)).map(([k]) => k.replace('Key', '').replace('Arrow', '')).join(' ');
-  return `move ${keys((v) => typeof v === 'string')} · buttons ${BTN_LIST.map((n) => `${n}=${Object.entries(m).find(([, v]) => v === BTN[n])[0].replace('Key', '')}`).join(' ')}`;
-}
+function mapText(p) { return describe(input.bindings(), p ? 'p2' : 'p1'); }
 
 // ---- sim tick: poll, sample, push
 function step() {

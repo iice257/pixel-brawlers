@@ -1,16 +1,13 @@
 // Keyboard + gamepad sampling (DOM side). Produces raw per-tick samples {left,right,up,down,buttons};
-// SOCD, facing and buffering happen in buffer.js. Layouts: GAME_DESIGN section 1.
+// SOCD, facing and buffering happen in buffer.js. Layouts live in bindings.js (remappable, saved by the Controls screen).
 import { BTN } from './buffer.js';
+import { PROFILES, defaultBindings, keymapOf } from './bindings.js';
 
-export const KEYMAPS = [
-  { KeyW: 'up', KeyA: 'left', KeyS: 'down', KeyD: 'right', KeyJ: BTN.LP, KeyK: BTN.HP, KeyU: BTN.LK, KeyI: BTN.HK, KeyL: BTN.BL },
-  { ArrowUp: 'up', ArrowLeft: 'left', ArrowDown: 'down', ArrowRight: 'right', Period: BTN.LP, Slash: BTN.HP, Semicolon: BTN.LK, Quote: BTN.HK, Comma: BTN.BL },
-];
-const BLOCK_DEFAULT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Slash', 'Quote', 'Period', 'Comma', 'Semicolon', 'F2', 'F3']);
 const DEADZONE = 0.35;
 const neutral = () => ({ left: false, right: false, up: false, down: false, buttons: 0 });
+const KEEP = new Set(['F1', 'F2', 'F3', 'Tab']);   // never typed into the game; the page uses them
 
-// Standard-mapping pad: D-pad 12-15 / left stick, X(2)=LP Y(3)=HP A(0)=LK B(1)=HK, LB(4)=block, RB(5)=LP+LK throw macro, Start(9)=pause.
+// Standard-mapping pad: D-pad 12-15 / left stick, X(2)=LP Y(3)=HP A(0)=LK B(1)=HK, LB(4) or RB(5) = block, LT(6) or RT(7) = throw (LP+LK), Start(9) = pause.
 export function padSample(gp) {
   const pr = (i) => !!gp.buttons[i]?.pressed;
   const ax = gp.axes[0] ?? 0, ay = gp.axes[1] ?? 0;
@@ -19,17 +16,20 @@ export function padSample(gp) {
   if (pr(3)) buttons |= BTN.HP;
   if (pr(0)) buttons |= BTN.LK;
   if (pr(1)) buttons |= BTN.HK;
-  if (pr(4)) buttons |= BTN.BL;
-  if (pr(5)) buttons |= BTN.LP | BTN.LK;
+  if (pr(4) || pr(5)) buttons |= BTN.BL;
+  if (pr(6) || pr(7)) buttons |= BTN.LP | BTN.LK;
   return { left: pr(14) || ax < -DEADZONE, right: pr(15) || ax > DEADZONE, up: pr(12) || ay < -DEADZONE, down: pr(13) || ay > DEADZONE, buttons, start: pr(9) };
 }
 
-export function createInput(win = window) {
+export function createInput(win = window, bindings = defaultBindings()) {
   const held = new Set();
   let pads = [];
+  let maps = {};
+  const setBindings = (b) => { bindings = b; maps = Object.fromEntries(PROFILES.map((p) => [p, keymapOf(b[p])])); };
+  setBindings(bindings);
   const onDown = (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (BLOCK_DEFAULT.has(e.code) || KEYMAPS.some((m) => e.code in m)) e.preventDefault();
+    if (PROFILES.some((p) => e.code in maps[p]) || KEEP.has(e.code)) e.preventDefault();
     held.add(e.code);
   };
   const onUp = (e) => { held.delete(e.code); };
@@ -52,13 +52,19 @@ export function createInput(win = window) {
 
   return {
     held,
+    setBindings,
+    bindings: () => bindings,
     // Poll gamepads once per tick (first connected pad -> P1, second -> P2).
     poll() { pads = (navigator.getGamepads?.() ?? []).filter((g) => g && g.connected); },
     pads: () => pads,
-    // solo: this player also reads the other keyboard layout (1-player modes).
+    // p: 0 = P1 layout + first pad, 1 = P2 layout + second pad. solo: a 1-player mode, so the human reads every layout and every pad.
     read(p, { solo = false } = {}) {
-      let s = kb(KEYMAPS[p]);
-      if (solo) s = merge(s, kb(KEYMAPS[1 - p]));
+      if (solo) {
+        let s = merge(merge(kb(maps.p1), kb(maps.p2)), kb(maps.alt));
+        for (const g of pads) s = merge(s, padSample(g));
+        return s;
+      }
+      let s = kb(maps[PROFILES[p]]);
       if (pads[p]) s = merge(s, padSample(pads[p]));
       return s;
     },
