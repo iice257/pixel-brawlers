@@ -1,4 +1,4 @@
-// New-engine fight scene (reached at /?new=1). Reads the pure world and draws baked sprites at integer positions.
+// New-engine fight scene (the default path at /; ?legacy=1 is the old game). Reads the pure world and draws baked sprites at integer positions.
 // Controls: P1 WASD + J K U I + L, P2 arrows + . / ; ' + , (P2 is a standing dummy with ?dummy=1; P1 then reads both layouts).
 // F2 = box overlay, F3 = FPS / state panel, R = reset positions.
 import { W, H, FLOOR_Y, STAGE_W } from '../config2.js';
@@ -9,6 +9,7 @@ import { boxesOf } from '../engine/fighter.js';
 import { camPos } from '../engine/camera.js';
 import { createHud, tickHud, drawHud } from './hud.js';
 import { BTN } from '../core/buffer.js';
+import { randomPad, mulberry } from './qa_pad.js';
 import { createFx, tickFx, drawFxBehind, drawFxFront, drawFxOverlay, tintOf } from '../gfx/fx.js';
 import { buildPalette } from '../gfx/palette.js';
 import { bakePose, drawBaked } from '../gfx/baker.js';
@@ -178,15 +179,14 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
   addEventListener('resize', fit);
   document.addEventListener('fullscreenchange', fit);
   const hint = document.querySelector('.hint');
-  if (hint) hint.innerHTML = '<b>P1</b> WASD move · J K U I attack · L block &nbsp;|&nbsp; <b>P2</b> arrows · . / ; \' · , &nbsp;|&nbsp; <b>F2</b> boxes · <b>F3</b> stats · <b>R</b> restart · <b>F</b> fullscreen';
-  document.title = 'Pixel Brawlers (new engine)';
-
+  if (hint) hint.innerHTML = '<b>P1</b> WASD move · J K U I attack · L block &nbsp;|&nbsp; <b>P2</b> arrows · . / ; \' · , &nbsp;|&nbsp; <b>F2</b> boxes · <b>F3</b> stats · <b>R</b> restart · <b>Esc</b> menu · <b>F</b> fullscreen';
+  
   const p1 = MODS[params.get('p1')] ? params.get('p1') : 'surge';
   const p2 = MODS[params.get('p2')] ? params.get('p2') : 'brick';
   const dummy = params.get('dummy') === '1';
   // ?match=0 (or any ?shot=) runs the bare sandbox sim; otherwise a full match: ?rounds=1|3|5 (default 3)
   const rounds = [1, 3, 5].includes(+params.get('rounds')) ? +params.get('rounds') : 3;
-  const sandbox = params.get('match') === '0' || (params.has('shot') && !['hud', 'ko', 'over'].includes(params.get('shot')));
+  const sandbox = params.get('match') === '0' || (params.has('shot') && !['hud', 'ko', 'over', 'replay'].includes(params.get('shot')));
   const newWorld = () => createWorld({ p1, p2, seed: 1, match: sandbox ? false : rounds });
   let world = newWorld();
   const hud = createHud();
@@ -203,6 +203,7 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     if (e.repeat) return;
     if (e.code === 'F2') showBoxes = !showBoxes;
     else if (e.code === 'F3') showPanel = !showPanel;
+    else if (e.code === 'Escape' && !params.has('shot')) location.search = '';
     else if (e.code === 'KeyR') { world = newWorld(); Object.assign(hud, createHud()); }
     else if (e.code === 'Enter' && world.match?.phase === 'over') { world = newWorld(); Object.assign(hud, createHud()); }   // temp menu: result screen -> fresh match
     else if (e.code === 'KeyF') { if (document.fullscreenElement) document.exitFullscreen(); else canvas.parentElement.requestFullscreen?.(); }
@@ -259,6 +260,11 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     const want = blocking ? 'blockstun' : 'hit';
     for (let i = 0; i < 60 && world.fighters[1].state !== want; i++) { stepW([i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, blocking ? { ...NEUTRAL, right: true } : NEUTRAL]); tickHud(hud, world); }
     for (let i = 0; i < 2; i++) { stepW([NEUTRAL, blocking ? { ...NEUTRAL, right: true } : NEUTRAL]); tickHud(hud, world); }
+    frozen = true;
+  }
+  if (params.get('shot') === 'replay') {   // QA capture: a seeded random-pad match, stepped to ?tick=N and frozen (frames of media/gameplay.gif)
+    const seed = +params.get('seed') || 1, a = randomPad(mulberry(1000 + seed), world, 0), b = randomPad(mulberry(5000 + seed), world, 1);
+    for (let i = 0, n = +params.get('tick') || 0; i < n; i++) { stepW([a(), b()]); tickHud(hud, world); }
     frozen = true;
   }
   if (params.get('shot') === 'combo') {  // QA still: SURGE chains LP > 2LP > HP on BRICK, frozen on the third hit with the combo counter up

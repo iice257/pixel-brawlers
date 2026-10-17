@@ -195,3 +195,9 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Dust (walk start, dash, jump, landing, knockdown slam) and afterimages (3 ghosts, 8 ticks) are derived renderer-side from state changes.
 - Measured sim + FX cost: ~0.01 ms per tick in node (budget 4 ms).
 - Stills: `media/qa/phase2-2.8-fx.png` (heavy hit), `phase2-2.8-fxblock.png` (block).
+
+## 2.9 Phase 2 gate
+
+- `/` now boots the new engine. Bare `/` shows the temporary menu (`src/ui/menu.js`): VERSUS 2P, VS CPU (dummy), TRAINING (stub, sandbox sim with a dummy), LEGACY GAME (`?legacy=1`). Any QA param (`p1`, `p2`, `shot`, `match`, `dummy`, `rounds`) skips the menu. Esc in a match returns to it.
+- `tests/soak.test.mjs`: 300 seeded random-pad matches (best of 3, all four SURGE/BRICK pairings), no exceptions, no non-finite state, every match over within 20000 ticks. Longest run: 18516 ticks. The pad is `src/ui/qa_pad.js`, biased toward the opponent: an unbiased random pad stalls and rounds run out the 99 s clock (a drawn round gives both sides a win), so a 5-round match legitimately passes 20000 ticks.
+- `media/gameplay.gif`: 10 s, 12 fps, frames from `?shot=replay&seed=3&tick=N` (headless Edge screenshots, ffmpeg).

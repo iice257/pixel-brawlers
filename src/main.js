@@ -1,4 +1,4 @@
-// Routing: /?new=1 boots the v2 engine (src/ui/fight.js); everything else is the legacy game, unchanged.
+// Routing: / boots the v2 engine (src/ui/fight.js). Bare / shows the temporary menu; any QA param (p1, p2, shot, match, dummy, rounds) goes straight to the match. ?legacy=1 is the original v0.1 game, unchanged.
 const canvas = document.getElementById('game');
 const params = new URLSearchParams(location.search);
 
@@ -61,7 +61,10 @@ async function legacy() {
 async function modern() {
   const { boot } = await import('./ui/fight.js');
   try { await Promise.race([document.fonts.load('8px "Press Start 2P"'), new Promise((r) => setTimeout(r, 1500))]); } catch { /* fallback font */ }
-  boot(canvas, params);
+  const direct = ['p1', 'p2', 'shot', 'match', 'dummy', 'rounds'].some((k) => params.has(k));
+  if (direct) { boot(canvas, params); return; }
+  const { runMenu } = await import('./ui/menu.js');
+  boot(canvas, await runMenu(canvas));
 }
 
-if (params.get('new') === '1') modern(); else legacy();
+if (params.get('legacy') === '1') legacy(); else modern();
