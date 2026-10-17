@@ -52,4 +52,4 @@ export const parts = {
 };
 
 // Joint pivots per part: name -> [x,y] inside the grid (where it hangs off its parent / children attach).
-export const pivots = {'head_neutral': {'neck': [16, 30]}};
+export const pivots = {'head_neutral': {'neck': [16, 32]}};

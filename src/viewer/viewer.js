@@ -1,3 +1,4 @@
+import './anim.js';
 import { buildPalette, PALETTE_GROUPS } from '../gfx/palette.js';
 import { gridToCanvas, gridSize } from '../gfx/parts.js';
 import * as surge from '../data/fighters/surge.js';

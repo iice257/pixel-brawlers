@@ -171,16 +171,16 @@ export const SURGE_BODY = {
 };
 // Joints (x,y inside each grid): where this part hangs off its parent, and where children attach.
 export const SURGE_PIVOTS = {
-  torso_stand:     { hips: [22, 34], neck: [22, 3], shoulderF: [33, 8], shoulderB: [11, 8] },
-  torso_crouch:    { hips: [24, 29], neck: [24, 3], shoulderF: [35, 8], shoulderB: [13, 8] },
-  torso_lean:      { hips: [22, 34], neck: [25, 3], shoulderF: [36, 8], shoulderB: [14, 8] },
-  torso_lean_back: { hips: [25, 34], neck: [22, 3], shoulderF: [33, 8], shoulderB: [11, 8] },
-  hips:            { torso: [15, 1], thighF: [22, 6], thighB: [8, 6] },
+  torso_stand:     { hips: [22, 31], neck: [22, 5], shoulderF: [33, 8], shoulderB: [11, 8] },
+  torso_crouch:    { hips: [24, 26], neck: [24, 5], shoulderF: [35, 8], shoulderB: [13, 8] },
+  torso_lean:      { hips: [22, 31], neck: [25, 5], shoulderF: [36, 8], shoulderB: [14, 8] },
+  torso_lean_back: { hips: [25, 31], neck: [22, 5], shoulderF: [33, 8], shoulderB: [11, 8] },
+  hips:            { torso: [15, 1], hipF: [22, 6], hipB: [8, 6] },
   arm_upper:       { shoulder: [7, 3], elbow: [7, 19] },
   arm_fore:        { elbow: [6, 2], wrist: [6, 19] },
   hand_fist:       { wrist: [7, 1] }, hand_open: { wrist: [7, 1] }, hand_guard: { wrist: [7, 1] },
-  thigh:           { hip: [9, 3], knee: [9, 24] },
-  shin:            { knee: [7, 2], ankle: [7, 22] },
+  thigh:           { hip: [9, 3], knee: [9, 22] },
+  shin:            { knee: [7, 2], ankle: [7, 20] },
   foot_flat:       { ankle: [6, 1] }, foot_toe: { ankle: [5, 1] }, foot_kick: { ankle: [5, 2] },
 };
 

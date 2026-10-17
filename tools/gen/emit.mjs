@@ -23,7 +23,7 @@ const defs = {
       iris: '#3b82c4', prop: ['#1d3e5d', '#5ea0c1'], fx: '#35e0ff',
     },
     parts: { head_neutral: surgeHead(), ...Object.fromEntries(Object.entries(SURGE_BODY).map(([k, fn]) => [k, fn()])) },
-    pivots: { head_neutral: { neck: [16, 30] }, ...SURGE_PIVOTS },
+    pivots: { head_neutral: { neck: [16, 32] }, ...SURGE_PIVOTS },
   },
   brick: {
     note: 'BRICK "THE HEADLINER": blond tank-top homage. Authored facing RIGHT (three-quarter front).',
@@ -36,7 +36,7 @@ const defs = {
       iris: '#4f8fc0', prop: ['#1d3e5d', '#5ea0c1'], fx: '#ffd84a',
     },
     parts: { head_neutral: brickHead() },
-    pivots: { head_neutral: { neck: [16, 30] } },
+    pivots: { head_neutral: { neck: [16, 32] } },
   },
 };
 

@@ -40,3 +40,11 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Boots use cloth B base index 1 (`j`), so they read grey-blue under the white wraps; trim cuff `n/m/p`.
 - `form()` in `tools/blockin.mjs` does the bevel shading (light upper-left); blobs and creases are placed per part in `tools/gen/surge_body.mjs`.
 - Viewer: `?view=sheet|compare|parts|palettes` isolates a section, `?fighter=brick` picks the sheet fighter (use the clean URL `/viewer?...`, serve drops the query on the `.html` redirect).
+
+## 1.4 Rig, baker, idle (2026-10-16)
+
+- Pivot changes to hit the 96-104 px standing height (guard stance measures 103-104 px incl. hair): torso `hips` pivot y 34 -> 31 (crouch 29 -> 26), torso `neck` pivot y 3 -> 5, head `neck` pivot y 30 -> 32, thigh knee y 24 -> 22, shin ankle y 22 -> 20. Hips pivots renamed `hipF` / `hipB`.
+- Limb angles are WORLD angles (not relative to the torso); upright parts (hips, torso, head) are cumulative. Convention is documented at the top of `src/gfx/rig.js`.
+- Baker: alpha threshold 128, per-part 1px outline, back arm/leg x0.82, and every opaque pixel is snapped back to the palette after rotation (blended edge colours otherwise showed up: 22 stray colours -> 0).
+- Feet origin = hips root column, floor = row under the lowest foot pixel (`floorGap` 1 = the foot outline row).
+- Guard stance: legF h30/k45, legB h-15/k30 (feet apart), armF s45/e120/w-30 guard hand, armB s30/e60 fist poking out in front of the chest, torso variant `lean`. Idle bob is torso dy [1,1,0,0,1,1], each held 8 ticks.
