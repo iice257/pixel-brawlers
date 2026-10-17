@@ -32,6 +32,11 @@
     #reference-wrap { overflow:auto; max-width:100%; max-height:560px; }
     #refCanvas { cursor: crosshair; }
   </style>
+<style>
+  #coverage table{border-collapse:collapse;font:12px monospace}
+  #coverage th,#coverage td{border:1px solid var(--edge);padding:2px 8px;text-align:left}
+  #coverage td.ok{color:#5be37d} #coverage td.bad{color:#ff6b6b}
+</style>
 </head>
 <body>
   <header>
@@ -66,14 +71,22 @@
       <h2>Animation (?view=anim; &amp;fighter=brick &amp;pair=1 &amp;scale=4 &amp;frame=N &amp;paused=1 &amp;joints=1)</h2>
       <div class="row" id="animControls" style="margin-bottom:10px">
         <select id="animFighter"><option>surge</option><option>brick</option></select>
+        <select id="animName"></select>
         <label><input type="checkbox" id="animPlay" checked> play</label>
         <label>speed <input type="range" id="animSpeed" min="0.25" max="3" step="0.25" value="1"> <span id="animSpeedVal">1x</span></label>
         <label><input type="checkbox" id="animFlip"> flip</label>
         <label><input type="checkbox" id="animJoints"> joints</label>
+        <label><input type="checkbox" id="animBoxes"> hitboxes</label>
         <label>zoom <select id="animScale"><option>1</option><option>2</option><option selected>4</option></select>x</label>
         <span id="animInfo" style="color:var(--muted)"></span>
       </div>
       <div id="anim"></div>
+      <h2 style="margin-top:18px">Coverage <span id="coverageSummary"></span></h2>
+      <div id="coverage"></div>
+    </section>
+    <section>
+      <h2>Contact sheet (?view=contact &amp;fighter=surge &amp;scale=2 &amp;only=regex &amp;cols=14)</h2>
+      <div id="contact"></div>
     </section>
     <section>
       <h2>Parts sheet (3x, pivots as crosshairs; ?fighter=brick)</h2>

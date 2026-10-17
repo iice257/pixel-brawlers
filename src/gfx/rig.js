@@ -12,7 +12,7 @@
 
 export const Q = 15;
 export const quant = (a = 0) => Math.round(a / Q) * Q;
-export const DEFAULT_Z = ['armB', 'legB', 'hips', 'torso', 'head', 'legF', 'armF'];
+export const DEFAULT_Z = ['armB', 'legB', 'torso', 'hips', 'head', 'legF', 'armF'];
 export const BACK_GROUPS = new Set(['armB', 'legB']);
 
 const rad = (d) => (d * Math.PI) / 180;

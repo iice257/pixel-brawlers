@@ -55,3 +55,12 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Tank torso: white `h` with grey `g/f` folds, `O` outline at neckline and armholes. Gloves are black with brown sheen row.
 - BRICK idle override in poses.js: torso lean r15, head r-15 dx1, armF s30/e105, armB s15/e45, legs wider (legB h-30). Height 104, AA 0, stray colours 0 (same as SURGE).
 - Not done: SURGE thigh/shin polish (low priority).
+
+## 1.6 Locomotion poses and anims (+ part polish)
+- Polish: `form()` highlight blobs are now one 2x2/2x3 rectangle per form, top-left only (was plus/diamond blobs everywhere). Hips are drawn above the torso (DEFAULT_Z: torso, then hips) so the belt/buckle shows. hand_guard redrawn for both fighters (horizontal finger rolls, knuckle ridge on the leading side, thumb wrap). SURGE feet: white sole + dark edge, toe-cap seam, lace dots, ankle cuff. SURGE thigh/shin: vastus cuts, knee cap, calf cuts, spiral shin wrap.
+- Poses (src/gfx/poses.js, library via `poseLibrary(fighterId)`): idle_0..5, walk_f_0..7, walk_b_0..7 (walk_b = walk_f cycle reversed), crouch_in_0/1, crouch_hold_0, crouch_out_0/1, jump_prep/rise/apex/fall_0-1/land, jump_f_0..3, jump_b_0..3, dash_f_0..2, dash_b_0..2. BRICK gets a loco style tweak (torso +15, head -15 dx1, front arm -15).
+- Walk: legF phase i*45, h +-30, knee lifts on the forward swing, arms contrapass, torso rocks 15 at passing poses (head counter-tilts -15 to keep height). Heights 103-108 (idle 103-104).
+- Crouch hold: hips r45, torso crouch r30, head r-45, legF h105 k135, legB h75 k150. Height SURGE 63, BRICK 58 (target ~62; the root dy idea does not apply because the baker floors the sprite at the lowest foot).
+- Timing in src/data/anims.js (walk_f 5 ticks, walk_b 6, crouch 3 per pose, dash_f 5/5/4, dash_b 5/7/4, jump_f/b 9 ticks per pose then hold).
+- Rotation: no pre-rotated variant parts yet; 15-45 degree limbs in walk/dash look acceptable at 2x (some stair-stepping on thin parts). Revisit if attacks show jaggies.
+- tools/posecheck.mjs: headless silhouette inspector (height, x extent, reach in a hitbox band).

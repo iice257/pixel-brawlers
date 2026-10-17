@@ -87,14 +87,14 @@ export function handFist() {
   line(g, 1, 13, 13, 13, '2', '345'); put(g, 2, 10, '5'); put(g, 6, 10, '4'); put(g, 9, 10, '5');
   return g;
 }
-export function handGuard() {
+export function handGuard() {                      // thumb-side view: horizontal finger rolls, knuckles lead (local left)
   const g = grid(15, 14);
   const P = [[1,0],[14,0],[15,4],[15,11],[12,14],[3,14],[0,11],[0,4]];
   fill(g, P, '3'); form(g, P, SK, 2, { only: '3' });
   glove(g, 7);
-  line(g, 1, 10, 14, 10, '1', '2345'); fill(g, [[8,9],[14,9],[14,12],[9,12]], '2', '345'); line(g, 9, 9, 13, 9, '4', '2');
-  for (const x of [4, 7, 10]) line(g, x, 8, x, 9, '1', '2345');
-  put(g, 3, 8, '5'); put(g, 2, 9, '4');
+  for (const y of [8, 10, 12]) line(g, 1, y, 11, y, '1', '2345');
+  for (const y of [8, 10, 12]) put(g, 0, y, '5');
+  fill(g, [[10,8],[14,8],[14,13],[11,13]], '2', '345'); line(g, 11, 8, 13, 8, '4', '2'); line(g, 11, 13, 13, 13, '1', '2');
   return g;
 }
 export function handOpen() {

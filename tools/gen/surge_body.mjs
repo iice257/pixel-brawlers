@@ -95,15 +95,14 @@ export function handFist() {
   line(g, 1, 11, 12, 11, '2', '345'); put(g, 2, 7, '5'); put(g, 3, 7, '4'); put(g, 6, 7, '5'); put(g, 9, 7, '4');
   return g;
 }
-export function handGuard() {                                                      // tighter fist, thumb across
+export function handGuard() {                                                      // fist seen from the thumb side: horizontal finger rolls, knuckles lead (local left)
   const g = grid(14, 13);
   const P = [[1,0],[13,0],[14,4],[14,10],[11,13],[3,13],[0,10],[0,4]];
   fill(g, P, '3'); form(g, P, SK, 2, { only: '3' });
   wrap(g, 4);
-  line(g, 1, 8, 13, 8, '1', '2345');                                              // thumb crease
-  fill(g, [[7,7],[13,7],[13,10],[8,10]], '2', '345'); line(g, 8, 7, 12, 7, '4', '2');
-  for (const x of [4, 7, 10]) line(g, x, 5, x, 7, '1', '2345');
-  put(g, 3, 5, '5'); put(g, 2, 6, '4');
+  for (const y of [7, 9, 11]) line(g, 1, y, 10, y, '1', '2345');
+  for (const y of [6, 8, 10, 12]) put(g, 0, y, '5');
+  fill(g, [[9,6],[13,6],[13,12],[10,12]], '2', '345'); line(g, 10, 6, 12, 6, '4', '2'); line(g, 10, 12, 12, 12, '1', '2');
   return g;
 }
 export function handOpen() {
@@ -121,45 +120,56 @@ export function handOpen() {
 export function thigh() {                          // 19x28
   const g = grid(19, 28);
   fill(g, [[2,0],[17,0],[19,8],[18,18],[16,25],[14,28],[5,28],[3,25],[1,18],[0,8]], '3');
-  form(g, [[2,0],[17,0],[19,8],[18,16],[10,18],[1,16],[0,8]], SK, 2, { only: '3', blobs: [[5,5,1], [6,10,1]] });   // quad
-  form(g, [[1,16],[10,18],[18,16],[16,25],[14,28],[5,28],[3,25]], SK, 2, { only: '3', blobs: [[9,22,1]] });         // knee/lower
-  line(g, 9, 3, 11, 16, '1', '2345');                                                                                 // quad split
-  line(g, 4, 25, 14, 25, '1', '2345');                                                                                // knee line
-  put(g, 8, 23, '5'); put(g, 9, 23, '5');
+  form(g, [[2,0],[17,0],[19,8],[18,16],[10,18],[1,16],[0,8]], SK, 2, { only: '3', blobs: [[4,2,1]] });
+  form(g, [[1,16],[10,18],[18,16],[16,25],[14,28],[5,28],[3,25]], SK, 2, { only: '3', blobs: [[7,21,1]] });
+  line(g, 9, 3, 11, 16, '1', '2345');
+  line(g, 4, 4, 6, 12, '2', '345'); line(g, 14, 5, 14, 13, '2', '345');
+  line(g, 3, 16, 9, 18, '1', '2345'); line(g, 10, 18, 17, 16, '1', '2345');
+  line(g, 5, 25, 13, 25, '1', '2345'); put(g, 8, 22, '5'); put(g, 9, 22, '5'); put(g, 9, 23, '4');
   return g;
 }
-export function shin() {                           // 15x26: calf + boot (cloth B dark + trim cuff)
+export function shin() {                           // 15x26: calf, wrapped shin, sneaker cuff
   const g = grid(15, 26);
   fill(g, [[2,0],[13,0],[15,6],[14,14],[12,19],[11,26],[4,26],[3,19],[1,14],[0,6]], '3');
-  form(g, [[2,0],[13,0],[15,6],[14,14],[12,18],[3,18],[1,14],[0,6]], SK, 2, { only: '3', blobs: [[5,5,1], [4,10,1]] });
-  line(g, 3, 6, 5, 14, '1', '2345');                                                                                   // shin ridge
+  form(g, [[2,0],[13,0],[15,6],[14,10],[1,10],[0,6]], SK, 2, { only: '3', blobs: [[3,1,1]] });
+  line(g, 3, 4, 4, 10, '1', '2345'); line(g, 11, 3, 12, 9, '2', '345');
+  const W = [[1,10],[14,10],[13,18],[3,18]];
+  fill(g, W, 'k'); form(g, W, 'ijkl', 2, { only: 'k' });
+  for (let i = 0; i < 4; i++) line(g, 1, 12 + i * 2, 14, 10 + i * 2, 'j', 'kl');
+  line(g, 1, 10, 14, 10, 'l', 'jk');
   fill(g, [[3,18],[12,18],[11,26],[4,26]], 'j');
-  form(g, [[3,18],[12,18],[12,26],[3,26]], 'ijkl', 1, { only: 'j', blobs: [[5,21,1]] });
+  form(g, [[3,18],[12,18],[12,26],[3,26]], 'ijkl', 1, { only: 'j' });
   fill(g, [[2,17],[13,17],[13,20],[2,20]], 'n'); line(g, 2, 17, 12, 17, 'p', 'n'); line(g, 3, 19, 13, 19, 'm', 'n');
   return g;
 }
 export function footFlat() {                       // 24x9
   const g = grid(24, 9);
   const P = [[2,0],[11,0],[14,3],[21,4],[24,6],[24,9],[0,9],[0,5]];
-  fill(g, P, 'j'); form(g, P, 'ijkl', 1, { only: 'j', blobs: [[5,2,1], [19,5,1]] });
-  line(g, 0, 8, 23, 8, 'i', 'jkl'); line(g, 14, 3, 20, 4, 'm', 'jkl');
-  line(g, 20, 5, 20, 8, 'i', 'jkl'); line(g, 3, 1, 10, 1, 'n', 'jkl');
+  fill(g, P, 'j'); form(g, P, 'ijkl', 1, { only: 'j', blobs: [[5,2,1]] });
+  line(g, 0, 7, 23, 7, 'l', 'jkl'); line(g, 0, 8, 23, 8, 'i', 'jkl');
+  line(g, 14, 3, 20, 4, 'm', 'jkl'); line(g, 20, 5, 20, 6, 'm', 'jkl');
+  for (const [x, y] of [[8, 2], [10, 2], [12, 3]]) put(g, x, y, 'l', 'jkl');
+  line(g, 2, 0, 10, 0, 'n', 'jkl'); line(g, 1, 6, 3, 6, 'i', 'jkl');
   return g;
 }
 export function footToe() {                        // heel lifted, toes pointed down-right
   const g = grid(24, 11);
   const P = [[0,1],[3,0],[10,0],[14,2],[20,5],[24,9],[24,11],[17,11],[11,9],[4,8],[0,5]];
-  fill(g, P, 'j'); form(g, P, 'ijkl', 1, { only: 'j', blobs: [[4,2,1], [17,7,1]] });
-  line(g, 4, 8, 11, 9, 'i', 'jkl'); line(g, 11, 9, 17, 11, 'i', 'jkl'); line(g, 17, 11, 23, 11, 'i', 'jkl');
-  line(g, 3, 1, 9, 1, 'n', 'jkl'); line(g, 12, 3, 18, 6, 'm', 'jkl');
+  fill(g, P, 'j'); form(g, P, 'ijkl', 1, { only: 'j', blobs: [[4,2,1]] });
+  line(g, 3, 8, 11, 9, 'l', 'jkl'); line(g, 11, 9, 17, 10, 'l', 'jkl'); line(g, 17, 10, 23, 10, 'l', 'jkl');
+  line(g, 4, 9, 11, 10, 'i', 'jkl'); line(g, 11, 10, 17, 11, 'i', 'jkl'); line(g, 17, 11, 23, 11, 'i', 'jkl');
+  line(g, 3, 1, 9, 1, 'n', 'jkl'); line(g, 14, 3, 19, 6, 'm', 'jkl');
+  for (const [x, y] of [[7, 2], [9, 3], [11, 4]]) put(g, x, y, 'l', 'jkl');
   return g;
 }
 export function footKick() {                       // flexed, toes up, sole leading
   const g = grid(24, 10);
   const P = [[0,4],[4,1],[11,0],[19,0],[24,0],[24,3],[19,6],[10,8],[3,9],[0,8]];
-  fill(g, P, 'j'); form(g, P, 'ijkl', 1, { only: 'j', blobs: [[9,2,1], [3,5,1]] });
+  fill(g, P, 'j'); form(g, P, 'ijkl', 1, { only: 'j', blobs: [[9,2,1]] });
+  line(g, 3, 8, 10, 7, 'l', 'jkl'); line(g, 10, 7, 19, 5, 'l', 'jkl');
   line(g, 3, 9, 10, 8, 'i', 'jkl'); line(g, 10, 8, 19, 6, 'i', 'jkl');
   line(g, 4, 1, 9, 1, 'n', 'jkl'); line(g, 13, 3, 18, 2, 'm', 'jkl');
+  for (const [x, y] of [[8, 3], [10, 3], [12, 4]]) put(g, x, y, 'l', 'jkl');
   return g;
 }
 

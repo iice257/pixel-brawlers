@@ -64,8 +64,19 @@ export function form(g, poly, ramp, base, opts = {}) {
     else if (dl < spread && dd - dl >= 1) t = base + 1;
     g[y][x] = ramp[Math.max(0, Math.min(ramp.length - 1, t))];
   }
-  for (const [bx, by, r] of blobs) for (let y = by - r; y <= by + r; y++) for (let x = bx - r; x <= bx + r; x++)
-    if (inside(x, y) && (x - bx) ** 2 + (y - by) ** 2 <= r * r + 1 && (!only || only.includes(g[y][x]))) g[y][x] = ramp[ramp.length - 1];
+  // highlight blobs: at most one per form, a 2x2 (small forms) or 2x3 rectangle, only in the top-left of the form
+  if (blobs.length) {
+    let minx = 1e9, miny = 1e9, maxx = -1, maxy = -1;
+    for (const [px, py] of poly) { minx = Math.min(minx, px); miny = Math.min(miny, py); maxx = Math.max(maxx, px); maxy = Math.max(maxy, py); }
+    const bw = maxx - minx, bh = maxy - miny;
+    const top = ramp[ramp.length - 1];
+    const pick = blobs.find(([bx, by]) => bx - minx <= bw * 0.5 && by - miny <= bh * 0.5) ?? blobs[0];
+    if (bw >= 7 && bh >= 7) {
+      const [bx, by] = pick, hh = bh >= 12 ? 3 : 2;
+      for (let y = by; y < by + hh; y++) for (let x = bx; x < bx + 2; x++)
+        if (inside(x, y) && (!only || only.includes(g[y][x]))) g[y][x] = top;
+    }
+  }
 }
 // Shift each row horizontally by round(shear * (1 - y/(h-1))): top moves, bottom stays. Returns a new wider grid.
 export function shearRows(g, shear, outW) {
