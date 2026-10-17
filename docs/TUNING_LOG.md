@@ -174,3 +174,13 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - KO pacing is config (`KO_PACE` in `config2.js`): normal 24 hitstop / 24 slow / 60 post, match-deciding 24 / 40 / 90.
 - Round-1 intro plays the `intro` anim on both fighters; the winner plays `win_a`/`win_b` (picked from the world RNG when the round ends); the loser stays in `ko`/`lying`.
 - Sprite bake priority: idle/walk/jump, normals, reactions, rest.
+
+## 2.7 Chains, cancels, combos, juggle, scaling
+
+- **Chain cancel** (`fighter.tryCancel`): the move must have a `chain` cancel (LP, LK, 2LP, 2LK; heavies finish the chain), have connected (hit or block), and be inside first active tick .. recovery tick 5. The next normal must be a *different* one, same weight or heavier, not already in `f.chain`, ground only; max `CHAIN_MAX` = 4 normals. GAME_DESIGN's example "LP -> LP -> 2LP -> HP" repeats LP, which its own "each normal once" rule forbids; I followed the rule (LP > 2LP > HP works, LP > LP does not).
+- **Special cancel plumbing** (`engine/specials.js`): moves flagged `special`/`super` look for a registered special whose input matches, within first active tick .. recovery tick 6, on hit or block; meter cost is deducted. The list is empty until 3.x; the test registers a fake special.
+- **Combo state** lives on the defender (`f.cb = {n, dmg, juggle, end, t}`). Only hits count (a blocked string is not a combo). It ends when the victim is actionable, lying, getting up or KO'd; a fresh hit afterwards starts a new combo at 100%.
+- **Scaling** `[100,90,80,70,60,50,40,40...]%`, floor 30% (supers 50% via `hit.super`), applied to `round(dmg * pwr * def * scale)`. Throws stay fixed damage. Hitstun x0.85 from hit 4, x0.7 from hit 7 (not cumulative).
+- **Juggle:** a launching hit gives the victim `juggleStart` (2HP: 3) or 3 for hard-KD launches (2HK); soft-KD launchers (HK, jHK) open no juggle. Hitting a launched victim costs `juggleCost`; a hit needs points >= cost (supers need 1 and spend none). Juggle hits re-launch with the air-hit arc and keep a hard knockdown. A KO'd or thrown victim cannot be juggled.
+- **Combo counter UI:** "N" + "HITS" + "DMG n" on the victim's side, pops each hit, holds 40 ticks after the combo ends (fades over the last 10).
+- **Not done:** jump cancel (stretch), meter gain from hits (the doc's meter section is not in 2.7).

@@ -8,7 +8,13 @@ import { pairOffset } from '../data/anims.js';
 
 export const BLOCK_STOP_PENALTY = 2;         // blocked hitstop = hit hitstop - 2
 export const CORNER_SHARE = 0.4;             // attacker is pushed back by this share of a cornered defender's pushback (see world.clampStage)
-const comboScale = () => 1;                  // damage scaling by combo position (2.7)
+// Damage scaling by combo position, hitstun decay and juggle points (GAME_DESIGN 2.7).
+export const SCALE = [100, 90, 80, 70, 60, 50, 40, 40];        // % by hit number, the last entry repeats
+export const SCALE_FLOOR = 30, SUPER_FLOOR = 50;
+export const JUGGLE_POINTS = 3;
+export const comboScale = (n, sup = false) => Math.max(sup ? SUPER_FLOOR : SCALE_FLOOR, SCALE[Math.min(n, SCALE.length) - 1]) / 100;
+export const stunDecay = (n) => (n >= 7 ? 0.7 : n >= 4 ? 0.85 : 1);
+const juggleCost = (h) => h.juggleCost ?? 1;
 
 const overlap = (a, b) => a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 
@@ -33,9 +39,9 @@ export function guardStance(d, a) {
   return dirY(abs) < 0 ? 'crouch' : 'stand';
 }
 
-const hittable = (d, boxBottom) => {
+const hittable = (d, boxBottom, h) => {
   if (d.inv || d.state === 'thrown' || d.state === 'throwing' || d.state === 'tech') return false;
-  if (d.state === 'launched') return false;                  // juggles arrive with 2.7
+  if (d.state === 'launched') return !d.thrown && !d.ko && d.cb.juggle >= (h.super ? 1 : juggleCost(h));   // juggle: needs points left
   if (d.state === 'lying' || d.state === 'ko') return boxBottom < 8;   // lying: only low hitboxes
   return true;
 };
@@ -44,7 +50,7 @@ function findHit(a, d) {
   for (const w of activeHits(a)) {
     if (w.done || w.hit.level === 'T') continue;
     const hurts = boxesOf(d).hurt;
-    if (hurts.some((hb) => overlap(w.box, hb)) && hittable(d, w.box[1])) return w;
+    if (hurts.some((hb) => overlap(w.box, hb)) && hittable(d, w.box[1], w.hit)) return w;
   }
   return null;
 }
@@ -55,7 +61,7 @@ function react(d, w) {
   return cy >= 70 ? 'hit_high' : 'hit_body';
 }
 
-function apply(ev) {
+function apply(ev, tick) {
   const { a, d, w, blocked } = ev, h = w.hit;
   const away = Math.sign(d.x - a.x) || -d.facing;
   a.hitDone[w.i] = true;
@@ -68,7 +74,13 @@ function apply(ev) {
     d.kvx = away * h.pbBlock; d.vx = 0;
     return;
   }
-  const dmg = Math.round(h.dmg * STATS[a.id].pwr * STATS[d.id].def * comboScale(a, d));
+  const cb = d.cb;
+  if (cb.n === 0 || cb.end !== null) { cb.n = 0; cb.dmg = 0; cb.juggle = 0; cb.end = null; }   // a new combo
+  const juggled = d.state === 'launched';
+  cb.n++; cb.t = tick;
+  if (juggled && !h.super) cb.juggle -= juggleCost(h);
+  const dmg = Math.round(h.dmg * STATS[a.id].pwr * STATS[d.id].def * comboScale(cb.n, h.super));
+  cb.dmg += dmg;
   d.hp = Math.max(0, d.hp - dmg);
   d.dmgTaken += dmg;
   d.ko = d.hp <= 0;
@@ -77,12 +89,13 @@ function apply(ev) {
   if (launch) {
     d.state = 'launched'; d.st = 0;
     d.vx = away * Math.abs(launch.vx); d.vy = launch.vy; d.kvx = 0;
-    d.kd = h.kd ?? (h.launch ? 'hard' : 'soft');
+    d.kd = juggled && d.kd === 'hard' ? 'hard' : h.kd ?? (h.launch ? 'hard' : 'soft');
     if (d.ko) d.kd = 'hard';
+    if (h.launch && !d.ko) cb.juggle = getMove(a.id, a.move).juggleStart ?? (d.kd === 'hard' ? JUGGLE_POINTS : 0);   // a launcher opens the juggle
   } else {
     d.crouchHit = boxKind(d) === 'crouch';
     d.react = react(d, w);
-    d.state = 'hit'; d.st = 0; d.stun = h.hs; d.kvx = away * h.pbHit; d.vx = 0;
+    d.state = 'hit'; d.st = 0; d.stun = Math.round(h.hs * stunDecay(cb.n)); d.kvx = away * h.pbHit; d.vx = 0;
   }
 }
 
@@ -95,7 +108,7 @@ export function resolveHits(world) {
     const stance = guardStance(d, a);
     events.push({ a, d, w, stance, blocked: stance !== null && blocksLevel(w.hit.level, stance) });
   }
-  for (const ev of events) apply(ev);
+  for (const ev of events) apply(ev, world.tick);
   resolveThrows(world);
   return events;
 }

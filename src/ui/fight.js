@@ -227,6 +227,19 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     for (let i = 0; i < 40; i++) tickHud(hud, world);
     frozen = true;
   }
+  if (params.get('shot') === 'combo') {  // QA still: SURGE chains LP > 2LP > HP on BRICK, frozen on the third hit with the combo counter up
+    const seq = [{ buttons: BTN.LP }, { down: true, buttons: BTN.LP }, { buttons: BTN.HP }];
+    const a = world.fighters[0], d = world.fighters[1];
+    a.x = 268; d.x = 306;
+    let i = 0, pend = false;
+    for (let t = 0; t < 200 && !(d.cb.n >= 3); t++) {
+      let in1 = { ...NEUTRAL, ...(i ? (seq[i].down ? { down: true } : {}) : {}) };
+      if (t === 0) in1 = { ...NEUTRAL, ...seq[0] };
+      else if (!pend && i < 2 && a.contact && a.stop === 0) { i++; pend = true; in1 = { ...NEUTRAL, ...seq[i] }; } else pend = false;
+      step(world, [in1, NEUTRAL]); tickHud(hud, world);
+    }
+    frozen = true;
+  }
   // QA stills of the HUD: shot=hud (FIGHT! in round 2, P1 up a round), shot=ko (K.O. slow-mo), shot=over (result screen)
   const toFight = () => { for (let i = 0; i < 400 && world.match.phase !== 'fight'; i++) { step(world, [NEUTRAL, NEUTRAL]); tickHud(hud, world); } };
   if (['hud', 'ko', 'over'].includes(params.get('shot'))) {

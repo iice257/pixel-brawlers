@@ -2,7 +2,7 @@
 // step(world, inputs) advances exactly one 60 Hz tick; inputs[i] = raw sample {left,right,up,down,buttons}.
 import { STAGE_W, FLOOR_Y } from '../config2.js';
 import { createRng } from '../core/rng.js';
-import { createFighter, stepFighter, canTurn, BOXES, boxKind } from './fighter.js';
+import { createFighter, stepFighter, canTurn, isActionable, BOXES, boxKind } from './fighter.js';
 import { resolveHits, stepThrow, CORNER_SHARE } from './combat.js';
 import { getMove } from './moves.js';
 import { createCamera, updateCamera } from './camera.js';
@@ -71,6 +71,12 @@ function limitSeparation(w) {
   a.x += s * ex * ka; b.x -= s * ex * kb;
 }
 
+// A combo is over once its victim is back on their feet or lying down (then the counter fades).
+const COMBO_OVER = new Set(['lying', 'getup', 'ko']);
+function endCombos(w) {
+  for (const f of w.fighters) if (f.cb.n > 0 && f.cb.end === null && (isActionable(f) || COMBO_OVER.has(f.state))) f.cb.end = w.tick;
+}
+
 function faceOpponents(w) {
   const [a, b] = w.fighters;
   for (const [f, o] of [[a, b], [b, a]]) {
@@ -97,6 +103,7 @@ function stepSim(w, inputs) {
   clampStage(w);
   faceOpponents(w);
   resolveHits(w);
+  endCombos(w);
   updateCamera(w.camera, w.fighters, w.stage.w);
   return w;
 }

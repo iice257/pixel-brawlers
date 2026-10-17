@@ -87,6 +87,26 @@ function pips(ctx, m) {
   }
 }
 
+// Combo counter on the side of the player being hit: N HITS + total damage, pops per hit, stays 40 ticks after the combo ends (fades over the last 10).
+const COMBO_HOLD = 40, COMBO_FADE = 10;
+function combos(ctx, world) {
+  world.fighters.forEach((f, i) => {
+    const cb = f.cb;
+    if (cb.n < 2) return;
+    const gone = cb.end === null ? 0 : world.tick - cb.end;
+    if (gone > COMBO_HOLD) return;
+    const cx = i === 0 ? 58 : W - 58;
+    ctx.save();
+    ctx.globalAlpha = gone > COMBO_HOLD - COMBO_FADE ? (COMBO_HOLD - gone) / COMBO_FADE : 1;
+    bigText(ctx, String(cb.n), cx, 78, world.tick - cb.t, 24);
+    ctx.font = FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = COLORS.frame; ctx.fillText('HITS', cx + 1, 99); ctx.fillStyle = COLORS.text; ctx.fillText('HITS', cx, 98);
+    const dmg = `DMG ${cb.dmg}`;
+    ctx.fillStyle = COLORS.frame; ctx.fillText(dmg, cx + 1, 111); ctx.fillStyle = GOLD[1]; ctx.fillText(dmg, cx, 110);
+    ctx.restore();
+  });
+}
+
 function result(ctx, m, world) {
   ctx.fillStyle = 'rgba(8,4,16,0.72)'; ctx.fillRect(0, 0, W, H);
   const txt = m.winner < 0 ? 'DRAW GAME' : `P${m.winner + 1} WINS`;
@@ -108,6 +128,7 @@ export function drawHud(ctx, hud, world) {
     ctx.fillStyle = COLORS.frame; ctx.fillText(S.name, x + 1, BAR.y + BAR.h + 5);
     ctx.fillStyle = left ? COLORS.p1 : COLORS.p2; ctx.fillText(S.name, x, BAR.y + BAR.h + 4);
   });
+  combos(ctx, world);
   const m = world.match;
   if (m) {
     timer(ctx, m);

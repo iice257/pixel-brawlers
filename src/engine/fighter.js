@@ -4,6 +4,7 @@
 import { STATS } from '../data/stats.js';
 import { ANIMS, animTotal } from '../data/anims.js';
 import { getMove, moveTotal } from './moves.js';
+import { pickSpecial } from './specials.js';
 import { BTN, SIMUL_WINDOW, createBuffer, pushInput, doubleTap, dirX, dirY, FWD, BACK, livePresses, take, takeThrow, pressAge } from '../core/buffer.js';
 
 export const PREJUMP = 3;
@@ -41,6 +42,8 @@ export function createFighter(id, idx, x, facing) {
     move: null, mt: 0, hitDone: [], contact: null, airUsed: false,   // attack
     stun: 0, stop: 0, kvx: 0, stance: 'stand', react: 'hit_body', crouchHit: false,   // reactions
     kd: null, lieT: 0, wake: WAKE_INV, qr: false, ko: false, threat: false, throwBack: false, pr: 0, thrown: false,
+    chain: [],                                  // normals used so far in the current chain (attacker side)
+    cb: { n: 0, dmg: 0, juggle: 0, end: null, t: 0 },   // combo this fighter is being hit by (defender side), see combat.apply
   };
 }
 
@@ -100,8 +103,9 @@ function pickPress(f) {
   }
   return best;
 }
-export function startAttack(f, id, pr = 0) {
+export function startAttack(f, id, pr = 0, chained = false) {
   const m = getMove(f.id, id);
+  f.chain = chained ? [...f.chain, id] : [id];
   f.move = id; f.mt = 1; f.hitDone = m.hits.map(() => false); f.contact = null; f.pr = pr;
   if (id === 'throw') f.throwBack = dirX(f.buf.dir) < 0;                  // hold back = back throw
   if (m.state === 'air') f.airUsed = true; else f.vx = 0;
@@ -119,6 +123,31 @@ function tryAttack(f, air) {
   startAttack(f, id, pr);
   return true;
 }
+// Cancels out of a move that connected (hit or block). Specials/supers first, then chain cancels (GAME_DESIGN 2.6).
+export const CHAIN_MAX = 4;
+function tryCancel(f, m) {
+  if (!f.contact || m.state === 'air') return false;
+  for (const c of m.cancels) {
+    if (c.into !== 'special' && c.into !== 'super') continue;
+    if (f.mt < c.from || f.mt > c.to) continue;
+    const kinds = m.cancels.filter((x) => x.into === 'special' || x.into === 'super').map((x) => x.into);
+    const sp = pickSpecial(f, kinds);
+    if (sp) { f.meter -= sp.cost ?? 0; startAttack(f, sp.id, f.mt); return true; }
+    break;
+  }
+  const win = m.cancels.find((c) => c.into === 'chain');
+  if (!win || f.mt < win.from || f.mt > win.to || f.chain.length >= CHAIN_MAX) return false;
+  const b = pickPress(f), y = dirY(f.buf.dir);
+  if (!b || y > 0) return false;
+  const id = (y < 0 ? '2' : '') + BTN_NAME[b], nm = getMove(f.id, id);
+  // different normal, same weight or heavier, each normal once per chain; heavies carry no chain cancel so they finish it
+  if (!nm || nm.state === 'air' || f.chain.includes(id) || nm.weight < m.weight) return false;
+  const pr = f.buf.press[BTN_IDX[b]];
+  take(f.buf, b);
+  startAttack(f, id, pr, true);
+  return true;
+}
+
 // Live hit windows of the current move: world-space boxes (for hit detection and the overlay).
 export function activeHits(f) {
   if (f.state !== 'attack') return [];
@@ -230,6 +259,7 @@ export function stepFighter(f, raw) {
           take(f.buf, other); startAttack(f, 'throw'); break;
         }
       }
+      if (tryCancel(f, m)) break;
       if (m.state === 'air') {
         if (integrate(f, S)) {
           f.vx = 0;
