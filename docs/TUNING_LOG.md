@@ -86,3 +86,10 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Lying height: ~48px counting the upright feet (fr 90) and arms; the body itself is ~28px. Engine hurtbox for lying comes from move data (GAME_DESIGN), not the sprite.
 - 2HK smear is now a big 3-tone arc ahead of the foot, fully visible. No pre-rotated leg_kick needed: the 60-75 degree jaggies are not noticeable at 3x.
 - Weak spots: surge intro_0 "arms crossed" reads as a relaxed stance; true back-turned intro is not possible with front/side-only parts. win_a_2 back arm tucks behind the head.
+
+## 1.9 Viewer player, tuner and sheet export
+
+- Player (`?view=anim`): scrub slider + tick readout, speed 0.25x-2x, loop toggle, flip, onion skin (prev/next frame at 30%), floor line, hurtbox/hitbox overlay (GAME_DESIGN 2.2 placeholder boxes, `boxes=1`), joint dots (`joints=1`).
+- Pose tuner (`tuner=1&pose=<name>`): select a pose, click a joint dot, `[` / `]` rotate by 15 degrees, arrows move the root, number keys cycle part variants, "copy pose JSON" yields an object that pastes straight into `poses.js`. Proven once with a test edit (pasted back, rendered identically), then reverted.
+- Coverage panel: MISSING anims in red, plus per-animation total-ticks columns for surge and brick. Status: ALL GREEN.
+- Contact sheet export button (`export=1`, `only=<regex>`, `cols=N`). Headless recipe: `msedge --headless --dump-dom "<viewer url>&view=contact&export=1&save=0"`, then pull the data URL out of `#sheetData`. Sheet: `media/qa/phase1-1.9-contact.png`.
