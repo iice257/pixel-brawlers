@@ -6,17 +6,20 @@ import { createFighter, stepFighter, canTurn, BOXES, boxKind } from './fighter.j
 import { resolveHits, stepThrow, CORNER_SHARE } from './combat.js';
 import { getMove } from './moves.js';
 import { createCamera, updateCamera } from './camera.js';
+import { STATS } from '../data/stats.js';
+import { createMatch, stepMatch, START_GAP } from './match.js';
 
 export const MIN_X = 16, MAX_X = 560;       // fighters are clamped to [16, 560]
 export const MAX_SEP = 296;                 // camera width 384 - 88
-export const START_GAP = 80;                // round start: 80px apart around the stage centre
+export { START_GAP };                       // round start: 80px apart around the stage centre (defined in match.js)
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-export function createWorld({ p1 = 'surge', p2 = 'brick', seed = 1 } = {}) {
+// match: false = bare sim (tests, sandbox); true = full round flow with intro, timer, KO and best-of-N; a number sets the round count (1/3/5)
+export function createWorld({ p1 = 'surge', p2 = 'brick', seed = 1, match = false } = {}) {
   const mid = STAGE_W / 2;
   const fighters = [createFighter(p1, 0, mid - START_GAP / 2, 1), createFighter(p2, 1, mid + START_GAP / 2, -1)];
-  return { tick: 0, rng: createRng(seed), stage: { w: STAGE_W, floorY: FLOOR_Y }, fighters, camera: createCamera(fighters, STAGE_W), thr: null };
+  return { tick: 0, rng: createRng(seed), stage: { w: STAGE_W, floorY: FLOOR_Y }, fighters, camera: createCamera(fighters, STAGE_W), thr: null, match: match ? createMatch({ rounds: match === true ? 3 : match }) : null };
 }
 
 const pushRect = (f) => {
@@ -82,7 +85,7 @@ const threatened = (f, o) => {
   return o.mt <= m.startup + m.active;
 };
 
-export function step(w, inputs) {
+function stepSim(w, inputs) {
   w.tick++;
   const [a, b] = w.fighters;
   a.threat = threatened(a, b); b.threat = threatened(b, a);
@@ -95,5 +98,12 @@ export function step(w, inputs) {
   faceOpponents(w);
   resolveHits(w);
   updateCamera(w.camera, w.fighters, w.stage.w);
+  return w;
+}
+
+const ops = { sim: stepSim, cam: (w) => updateCamera(w.camera, w.fighters, w.stage.w) };
+export function step(w, inputs) {
+  if (!w.match) return stepSim(w, inputs);
+  stepMatch(w, inputs, ops, w.fighters.map((f) => STATS[f.id].hp));
   return w;
 }

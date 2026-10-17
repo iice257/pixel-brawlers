@@ -158,13 +158,17 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
   addEventListener('resize', fit);
   document.addEventListener('fullscreenchange', fit);
   const hint = document.querySelector('.hint');
-  if (hint) hint.innerHTML = '<b>P1</b> WASD move · J K U I attack · L block &nbsp;|&nbsp; <b>P2</b> arrows · . / ; \' · , &nbsp;|&nbsp; <b>F2</b> boxes · <b>F3</b> stats · <b>R</b> reset · <b>F</b> fullscreen';
+  if (hint) hint.innerHTML = '<b>P1</b> WASD move · J K U I attack · L block &nbsp;|&nbsp; <b>P2</b> arrows · . / ; \' · , &nbsp;|&nbsp; <b>F2</b> boxes · <b>F3</b> stats · <b>R</b> restart · <b>F</b> fullscreen';
   document.title = 'Pixel Brawlers (new engine)';
 
   const p1 = MODS[params.get('p1')] ? params.get('p1') : 'surge';
   const p2 = MODS[params.get('p2')] ? params.get('p2') : 'brick';
   const dummy = params.get('dummy') === '1';
-  let world = createWorld({ p1, p2, seed: 1 });
+  // ?match=0 (or any ?shot=) runs the bare sandbox sim; otherwise a full match: ?rounds=1|3|5 (default 3)
+  const rounds = [1, 3, 5].includes(+params.get('rounds')) ? +params.get('rounds') : 3;
+  const sandbox = params.get('match') === '0' || (params.has('shot') && !['hud', 'ko', 'over'].includes(params.get('shot')));
+  const newWorld = () => createWorld({ p1, p2, seed: 1, match: sandbox ? false : rounds });
+  let world = newWorld();
   const hud = createHud();
   const input = createInput();
   let showBoxes = params.get('boxes') === '1', showPanel = params.get('panel') === '1';
@@ -177,7 +181,8 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     if (e.repeat) return;
     if (e.code === 'F2') showBoxes = !showBoxes;
     else if (e.code === 'F3') showPanel = !showPanel;
-    else if (e.code === 'KeyR') { world = createWorld({ p1, p2, seed: 1 }); Object.assign(hud, createHud()); }
+    else if (e.code === 'KeyR') { world = newWorld(); Object.assign(hud, createHud()); }
+    else if (e.code === 'Enter' && world.match?.phase === 'over') { world = newWorld(); Object.assign(hud, createHud()); }   // temp menu: result screen -> fresh match
     else if (e.code === 'KeyF') { if (document.fullscreenElement) document.exitFullscreen(); else canvas.parentElement.requestFullscreen?.(); }
   });
 
@@ -220,12 +225,38 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     for (let i = 0; i < 40; i++) tickHud(hud, world);
     frozen = true;
   }
+  // QA stills of the HUD: shot=hud (FIGHT! in round 2, P1 up a round), shot=ko (K.O. slow-mo), shot=over (result screen)
+  const toFight = () => { for (let i = 0; i < 400 && world.match.phase !== 'fight'; i++) { step(world, [NEUTRAL, NEUTRAL]); tickHud(hud, world); } };
+  if (['hud', 'ko', 'over'].includes(params.get('shot'))) {
+    toFight();
+    if (params.get('shot') === 'hud') {
+      world.match.round = 2; world.match.wins = [1, 0]; world.match.timer = 72;
+      world.fighters[1].hp = Math.round(world.fighters[1].hp * 0.62); world.fighters[0].hp = Math.round(world.fighters[0].hp * 0.88);
+      for (let i = 0; i < 30; i++) tickHud(hud, world);
+      hud.lag[1] = 0.8; hud.lag[0] = 0.95;
+      world.match.t = 5;
+    } else {
+      world.fighters[0].x = 268; world.fighters[1].x = 308; world.fighters[1].hp = 4;
+      if (params.get('shot') === 'over') world.match.wins = [1, 0];   // P1 takes the 2nd round -> match over
+      for (let i = 0; i < 80 && world.match.phase !== 'ko'; i++) { step(world, [i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+      if (params.get('shot') === 'ko') for (let i = 0; i < 40; i++) { step(world, [NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+      else { for (let i = 0; i < 400 && world.match.phase !== 'over'; i++) { step(world, [NEUTRAL, NEUTRAL]); tickHud(hud, world); } world.match.t = 20; }
+    }
+    frozen = true;
+  }
   window.__game = { get world() { return world; }, input, loop, bakeMs, bakeStats };
   window.__debug = {
     boxes(on = !showBoxes) { showBoxes = on; },
     panel(on = !showPanel) { showPanel = on; },
     place(p, x, y = 0) { world.fighters[p].x = x; world.fighters[p].y = y; },
-    reset() { world = createWorld({ p1, p2, seed: 1 }); },
+    reset() { world = newWorld(); },
+    setHP(p, n) { world.fighters[p].hp = n; },
+    setTimer(n) { if (world.match) { world.match.timer = n; world.match.tt = 0; } },
+    setMeter(p, n) { world.fighters[p].meter = n; },
+    forceKO(p) {   // KO fighter p as if a final hit landed: HP 0 and the KO fall; the match flow picks it up on the next tick
+      const f = world.fighters[p];
+      f.hp = 0; f.ko = true; f.state = 'launched'; f.st = 0; f.kd = 'hard'; f.vx = -f.facing * 2.4; f.vy = 4.5; f.y = Math.max(f.y, 1);
+    },
     stepN(n, a = NEUTRAL, b = NEUTRAL) { for (let i = 0; i < n; i++) step(world, [a, b]); render(); },
   };
   fit();

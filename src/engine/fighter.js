@@ -36,7 +36,7 @@ export function createFighter(id, idx, x, facing) {
     id, idx, x, y: 0, vx: 0, vy: 0, px: x, facing,
     state: 'idle', st: 0,                       // st = ticks spent in the current state
     anim: 'idle', at: 0,                        // animation name + ticks into it (renderer maps to a pose frame)
-    hp: STATS[id].hp, dmgTaken: 0, buf: createBuffer(),
+    hp: STATS[id].hp, dmgTaken: 0, meter: 0, buf: createBuffer(),
     jumpDir: 0, landT: 0, outT: 0, inv: null,
     move: null, mt: 0, hitDone: [], contact: null, airUsed: false,   // attack
     stun: 0, stop: 0, kvx: 0, stance: 'stand', react: 'hit_body', crouchHit: false,   // reactions

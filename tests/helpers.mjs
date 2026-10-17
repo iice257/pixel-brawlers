@@ -15,8 +15,8 @@ export const dirs = {
 };
 
 // A world with the fighters `gap` px apart on the stage centre.
-export function arena({ p1 = 'surge', p2 = 'brick', gap = 40 } = {}) {
-  const w = createWorld({ p1, p2 });
+export function arena({ p1 = 'surge', p2 = 'brick', gap = 40, match = false } = {}) {
+  const w = createWorld({ p1, p2, match });
   w.fighters[0].x = 288 - gap / 2; w.fighters[1].x = 288 + gap / 2;
   return w;
 }

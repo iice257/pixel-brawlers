@@ -153,3 +153,17 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - **Quick-rise:** any 2 presses, or direction + 1 press, with age < 3 on the landing tick. Roll back 28px, lie 8.
 - **Lying hurtbox** `{-30,0,60,16}`: only hitboxes whose bottom is below y=8 connect.
 - **Throw box** shows as yellow in the F2 overlay.
+
+## 2.6 Rounds, timer, KO, announcer, HUD v0
+
+- **State machine** lives in `src/engine/match.js` (pure, in `world.match`): intro 90 → ROUND N 72 → FIGHT 30 (inputs unlock on the first FIGHT tick) → play. Fighters get neutral input in every phase except fight/play. `createWorld({match:true|1|3|5})`; without `match` the bare sim runs as before (all older tests use it).
+- **Timer** 99, one per 60 ticks of fight/play (it keeps running through hitstop and throws, stops at KO).
+- **KO:** the tick the final blow lands the round ends, both fighters get 24 ticks of hitstop, then 40 ticks of slow-mo (fighters, hits and the throw run every 4th tick; camera every tick). Then 90 ticks of "post" (PERFECT/DRAW text), then the next round.
+- **Time over:** higher HP percentage wins, equal is a draw (both +1). "TIME UP" 60 ticks.
+- **Double KO** = draw round, both +1. **PERFECT** = winner's `dmgTaken` is 0 for the round.
+- **Match end:** a side has `need` wins (1/3/5 → 1/2/3) and the wins differ. 1-1 after a draw plays on. Safety cap: at round `2*need+1` still level → "DRAW GAME" (not in the doc).
+- **Between rounds:** fresh fighters 80px apart around the centre, full HP, meter retained (`f.meter`, nothing writes it yet). Round 1 only has the intro.
+- **Result screen:** "P1 WINS" + name + PRESS ENTER; Enter starts a fresh match (there is no temp menu yet, so a rematch is the stand-in).
+- **HUD v0** (`src/ui/hud.js`): bars with the 28-tick-hold yellow lag bar, names, `need` round pips per side, centre timer (16px, blinks red at ≤10), announcer with the ART_BIBLE 9 gradient text (24px, 2px outline, 2px drop shadow, 150%→100% pop in 8 ticks). "FINAL ROUND" when both sides are one win from the match.
+- **Not done:** winner pose and intro animation (no art in the anim set, fighters stand idle), HUD restyle (6.1), round-count picker.
+- **`__debug`:** `setHP(p,n)`, `setTimer(n)`, `setMeter(p,n)`, `forceKO(p)`. URL params: `?rounds=1|3|5`, `?match=0` (bare sandbox), QA stills `?shot=hud|ko|over`.
