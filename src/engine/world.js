@@ -2,7 +2,9 @@
 // step(world, inputs) advances exactly one 60 Hz tick; inputs[i] = raw sample {left,right,up,down,buttons}.
 import { STAGE_W, FLOOR_Y } from '../config2.js';
 import { createRng } from '../core/rng.js';
-import { createFighter, stepFighter, isActionable, BOXES, boxKind } from './fighter.js';
+import { createFighter, stepFighter, canTurn, BOXES, boxKind } from './fighter.js';
+import { resolveHits, CORNER_SHARE } from './combat.js';
+import { getMove } from './moves.js';
 import { createCamera, updateCamera } from './camera.js';
 
 export const MIN_X = 16, MAX_X = 560;       // fighters are clamped to [16, 560]
@@ -18,15 +20,23 @@ export function createWorld({ p1 = 'surge', p2 = 'brick', seed = 1 } = {}) {
 }
 
 const pushRect = (f) => {
-  const pb = BOXES[boxKind(f)].push, x0 = f.x + pb[0];
+  const pb = BOXES[boxKind(f)].push;
+  if (!pb) return null;                                                    // lying fighters have no pushbox
+  const x0 = f.x + pb[0];
   return { x0, x1: x0 + pb[2], y0: f.y + pb[1], y1: f.y + pb[1] + pb[3] };
 };
 function overlap(a, b) {
   const ra = pushRect(a), rb = pushRect(b);
+  if (!ra || !rb) return 0;
   if (ra.y0 >= rb.y1 || rb.y0 >= ra.y1) return 0;
   return Math.max(0, Math.min(ra.x1, rb.x1) - Math.max(ra.x0, rb.x0));
 }
-const clampStage = (w) => w.fighters.forEach((f) => { f.x = clamp(f.x, MIN_X, MAX_X); });
+// Clamp to the stage. A fighter in pushback that a wall stops hands CORNER_SHARE of the lost distance to the other fighter (GAME_DESIGN 2.1).
+const clampStage = (w) => w.fighters.forEach((f, i) => {
+  const c = clamp(f.x, MIN_X, MAX_X);
+  if (f.x !== c && (f.state === 'hit' || f.state === 'blockstun') && f.y <= 0) w.fighters[1 - i].x -= (f.x - c) * CORNER_SHARE;
+  f.x = c;
+});
 
 function pushBodies(w) {
   const [a, b] = w.fighters;
@@ -61,18 +71,28 @@ function limitSeparation(w) {
 function faceOpponents(w) {
   const [a, b] = w.fighters;
   for (const [f, o] of [[a, b], [b, a]]) {
-    if (f.y <= 0 && isActionable(f) && o.x !== f.x) f.facing = o.x > f.x ? 1 : -1;
+    if (canTurn(f) && o.x !== f.x) f.facing = o.x > f.x ? 1 : -1;
   }
 }
 
+// An attack that can still hit within reach makes holding back an automatic guard (GAME_DESIGN 2.4).
+const threatened = (f, o) => {
+  if (o.state !== 'attack' || Math.abs(o.x - f.x) > 90) return false;
+  const m = getMove(o.id, o.move);
+  return o.mt <= m.startup + m.active;
+};
+
 export function step(w, inputs) {
   w.tick++;
+  const [a, b] = w.fighters;
+  a.threat = threatened(a, b); b.threat = threatened(b, a);
   w.fighters.forEach((f, i) => stepFighter(f, inputs[i]));
   clampStage(w);
   pushBodies(w);
   limitSeparation(w);
   clampStage(w);
   faceOpponents(w);
+  resolveHits(w);
   updateCamera(w.camera, w.fighters, w.stage.w);
   return w;
 }

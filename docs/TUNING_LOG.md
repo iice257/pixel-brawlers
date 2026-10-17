@@ -125,3 +125,16 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Crouch in/out 6 ticks each (anim only, never blocks input). Facing turns only when grounded and actionable, so cross-ups hold their facing until landing.
 - Pushboxes: grounded overlap splits evenly, a wall-clamped fighter's share goes to the other, airborne bodies push 1px/tick apart. Max separation 296 pulls back whoever moved away. Camera ease 0.18, lift up to 14px (full at height 78), render position rounded.
 - Baker: `bakeOp` now processes only a square region around the joint (pixel-identity checked on all 276 poses of both fighters: 0 differences, about 2x faster). The fight scene bakes idle at boot and the other locomotion poses in 5ms slices per frame (boot 150ms instead of 4s); anything not ready yet bakes on demand.
+
+## 2.4 Attacks, hit resolution, blocking, reactions
+
+- Files: `src/engine/combat.js` (hit detection and resolution), attack/reaction states in `fighter.js`, `src/ui/hud.js` (health bars). Tests in `tests/combat.test.mjs` with the scripted-input helper `tests/helpers.mjs` (`run(w, n, p1Frames, p2Frames)`, sparse "hold until next key" inputs).
+- Pushback: the table's PB is read as the initial speed in px/tick and decays by 0.86 per tick (GAME_DESIGN 2.1), so LP slides about 16px, HK about 50px.
+- Corner push: GAME_DESIGN 2.1 says the attacker is pushed back by 60% of the defender's lost pushback, the Phase 2 brief says 40%. Implemented 40% (`CORNER_SHARE`); one constant to change.
+- Hitstop: both fighters freeze for the move's value (light 7, heavy 10); blocked is 2 less. The input buffer keeps recording while frozen, so buffered presses survive hitstop.
+- Advantage is measured, not assumed: the test runs every grounded normal for both fighters on hit and on block and compares the tick each fighter leaves its move/stun with `advantage()`.
+- Guard: BL held, or holding back; holding back only auto-guards while an attack is in startup/active within 90px (otherwise it is a walk). The side test uses the screen-space stick against the attacker's current side, so cross-ups swap the needed direction on the same tick. H/O need stand block, L needs crouch block, M either.
+- Air hits: a jump-in that hits an airborne defender knocks them down softly (vx 2.0, vy 3.0; not in the spec). A defender in a launch arc cannot be hit until juggles arrive in 2.7.
+- Air normals: hitbox active S+1..S+A only; the move ends on landing (3 ticks of landing lag if nothing connected). The spec's "deep hit +2 hitstun" is not implemented yet.
+- Not done on purpose: per-move hurtbox overrides (2HP legs-only shrink), meter, chip (0 for normals anyway).
+- Baker (again): z-order compositing now happens in a pixel buffer instead of through two canvases. Pixel-identical to the previous baker on all 276 poses, about 13 ms per pose (was 23). The fight scene now queues every anim for slice baking, locomotion first.

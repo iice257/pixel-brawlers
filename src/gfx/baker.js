@@ -85,8 +85,7 @@ const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 // Procedural smear: a crescent (tapering toward its start) around a joint, three tones across its width
 // (tone 4 inside, tone 5 mid, white on the leading edge). Drawn only on empty pixels so the limb stays on top.
 // fx = { type:'arc', c: joint name, r: radius, a0, a1 } with limb angles (0 = down, positive = forward), degrees.
-function drawSmears(fighter, mctx, fxList, joints) {
-  const img = mctx.getImageData(0, 0, CW, CH), d = img.data;
+function drawSmears(fighter, d, fxList, joints) {
   const pal = fighter.palette, tones = [hexRgb(pal['4']), hexRgb(pal['5']), hexRgb(pal.w)];
   for (const fx of fxList) {
     if (fx.type !== 'arc') continue;
@@ -106,7 +105,6 @@ function drawSmears(fighter, mctx, fxList, joints) {
       d[i] = tone[0]; d[i + 1] = tone[1]; d[i + 2] = tone[2]; d[i + 3] = 255;
     }
   }
-  mctx.putImageData(img, 0, 0);
 }
 
 const cache = new Map();
@@ -115,21 +113,28 @@ export function bakePose(fighter, pose, only = null) {   // only: optional list 
   const key = poseKey(fighter.id, pose) + (only ? '|' + only.join() : '');
   if (cache.has(key)) return cache.get(key);
   const { ops, joints } = resolvePose(fighter, pose);
-  const main = document.createElement('canvas');
-  main.width = CW; main.height = CH;
-  const mctx = main.getContext('2d', { willReadFrequently: true });
-  const tmp = document.createElement('canvas');
-  tmp.width = 256; tmp.height = 256;
-  const tctx = tmp.getContext('2d');
+  // Every baked pixel is opaque, so z-order compositing is "overwrite where the op has a pixel": done straight in a pixel buffer.
+  const buf = new Uint8ClampedArray(CW * CH * 4);
   const feet = { top: 1e9, bottom: -1 };
   for (const op of ops) {
     const { img, rx, ry, R } = bakeOp(fighter, op);
-    tctx.clearRect(0, 0, 256, 256);
-    tctx.putImageData(img, 0, 0);
-    if (!only || only.includes(op.group)) mctx.drawImage(tmp, 0, 0, R, R, rx, ry, R, R);
+    const dd = img.data;
+    if (!only || only.includes(op.group)) {
+      for (let y = 0; y < R; y++) {
+        const cy = ry + y;
+        if (cy < 0 || cy >= CH) continue;
+        for (let x = 0; x < R; x++) {
+          const i = (y * R + x) * 4;
+          if (!dd[i + 3]) continue;
+          const cx = rx + x;
+          if (cx < 0 || cx >= CW) continue;
+          const j = (cy * CW + cx) * 4;
+          buf[j] = dd[i]; buf[j + 1] = dd[i + 1]; buf[j + 2] = dd[i + 2]; buf[j + 3] = 255;
+        }
+      }
+    }
     if (op.part.startsWith('foot_')) {
       // lowest opaque pixel of this foot (not its outline)
-      const dd = img.data;
       for (let y = R - 1; y >= 0; y--) {
         let hit = false;
         for (let x = 0; x < R; x++) { const i = (y * R + x) * 4; if (dd[i + 3] && !(dd[i] === OUT_RGB[0] && dd[i + 1] === OUT_RGB[1] && dd[i + 2] === OUT_RGB[2])) { hit = true; break; } }
@@ -137,17 +142,18 @@ export function bakePose(fighter, pose, only = null) {   // only: optional list 
       }
     }
   }
-  if (pose.fx?.length) drawSmears(fighter, mctx, pose.fx, joints);
+  if (pose.fx?.length) drawSmears(fighter, buf, pose.fx, joints);
   // bounding box of everything drawn
-  const data = mctx.getImageData(0, 0, CW, CH);
   let x0 = CW, y0 = CH, x1 = -1, y1 = -1;
-  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) if (data.data[(y * CW + x) * 4 + 3]) {
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) if (buf[(y * CW + x) * 4 + 3]) {
     if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
   }
   const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const trimmed = new ImageData(w, h);
+  for (let y = 0; y < h; y++) trimmed.data.set(buf.subarray(((y + y0) * CW + x0) * 4, ((y + y0) * CW + x0 + w) * 4), y * w * 4);
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
-  canvas.getContext('2d').drawImage(main, x0, y0, w, h, 0, 0, w, h);
+  canvas.getContext('2d').putImageData(trimmed, 0, 0);
   const mirror = document.createElement('canvas');
   mirror.width = w; mirror.height = h;
   const mc = mirror.getContext('2d');

@@ -7,6 +7,8 @@ import { createLoop } from '../core/loop.js';
 import { createWorld, step } from '../engine/world.js';
 import { boxesOf } from '../engine/fighter.js';
 import { camPos } from '../engine/camera.js';
+import { createHud, tickHud, drawHud } from './hud.js';
+import { BTN } from '../core/buffer.js';
 import { buildPalette } from '../gfx/palette.js';
 import { bakePose, drawBaked } from '../gfx/baker.js';
 import { poseLibrary } from '../gfx/poses.js';
@@ -33,13 +35,16 @@ function baked(id, poseName) {
   return b;
 }
 const LOCO = ['idle', 'walk_f', 'walk_b', 'crouch_in', 'crouch_hold', 'crouch_out', 'jump_prep', 'jump_rise', 'jump_apex', 'jump_fall', 'jump_land', 'jump_f', 'jump_b', 'dash_f', 'dash_b'];
-// Idle is baked up front; the rest is baked in ~5 ms slices after each frame so boot is instant (anything not ready yet bakes on demand).
+// Idle is baked up front; the rest is baked in ~6 ms slices after each frame so boot is instant (anything not ready yet bakes on demand).
 function prebake(ids) {
   const queue = [];
-  for (const id of ids) { const a = spriteSet(id).anims; for (const n of LOCO) for (const fr of a[n].frames) queue.push([id, fr.pose]); }
+  const seen = new Set();
+  const add = (id, names) => { const a = spriteSet(id).anims; for (const n of names) for (const fr of a[n].frames) if (!seen.has(id + fr.pose)) { seen.add(id + fr.pose); queue.push([id, fr.pose]); } };
+  for (const id of ids) add(id, LOCO);                                          // locomotion first, then everything else the fight can show
+  for (const id of ids) add(id, Object.keys(spriteSet(id).anims));
   const stats = { total: queue.length, done: 0 };
   const slice = () => {
-    const end = performance.now() + 5;
+    const end = performance.now() + 6;
     while (queue.length && performance.now() < end) { const [id, p] = queue.shift(); baked(id, p); stats.done++; }
     if (queue.length) requestAnimationFrame(slice);
   };
@@ -160,6 +165,7 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
   const p2 = MODS[params.get('p2')] ? params.get('p2') : 'brick';
   const dummy = params.get('dummy') === '1';
   let world = createWorld({ p1, p2, seed: 1 });
+  const hud = createHud();
   const input = createInput();
   let showBoxes = params.get('boxes') === '1', showPanel = params.get('panel') === '1';
 
@@ -171,7 +177,7 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     if (e.repeat) return;
     if (e.code === 'F2') showBoxes = !showBoxes;
     else if (e.code === 'F3') showPanel = !showPanel;
-    else if (e.code === 'KeyR') world = createWorld({ p1, p2, seed: 1 });
+    else if (e.code === 'KeyR') { world = createWorld({ p1, p2, seed: 1 }); Object.assign(hud, createHud()); }
     else if (e.code === 'KeyF') { if (document.fullscreenElement) document.exitFullscreen(); else canvas.parentElement.requestFullscreen?.(); }
   });
 
@@ -180,6 +186,7 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     if (frozen) return;
     input.poll();
     step(world, [input.read(0, { solo: dummy }), dummy ? NEUTRAL : input.read(1)]);
+    tickHud(hud, world);
   };
   const render = () => {
     ctx.imageSmoothingEnabled = false;
@@ -188,6 +195,7 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     // the fighter that acted last draws in front: for now P1 behind P2 unless P1 is airborne
     const order = world.fighters[0].y > 0 || world.fighters[0].state !== 'idle' ? [1, 0] : [0, 1];
     for (const i of order) drawFighter(ctx, world.fighters[i], cam);
+    drawHud(ctx, hud, world);
     if (showBoxes) drawBoxes(ctx, world, cam);
     if (showPanel) drawPanel(ctx, world, loop.stats, input);
   };
@@ -197,6 +205,12 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     for (let i = 0; i < 20; i++) step(world, [{ ...N, right: true }, dn]);
     for (let i = 0; i < 3; i++) step(world, [{ ...N, right: true, up: true }, dn]);
     for (let i = 0; i < 14; i++) step(world, [{ ...N, right: true }, dn]);
+    frozen = true;
+  }
+  if (params.get('shot') === 'hit') {    // QA still: SURGE's HP connects on BRICK (hitbox on its first active tick, hitstop frozen)
+    world.fighters[0].x = 268; world.fighters[1].x = 316;
+    for (let i = 0; i < 40 && world.fighters[1].state !== 'hit'; i++) { step(world, [i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+    for (let i = 0; i < 40; i++) tickHud(hud, world);
     frozen = true;
   }
   window.__game = { get world() { return world; }, input, loop, bakeMs, bakeStats };
