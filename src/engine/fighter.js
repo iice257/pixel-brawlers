@@ -296,7 +296,7 @@ function pickAnim(f) {
     case 'attack': playAt(f, getMove(f.id, f.move).anim, f.mt - 1); break;
     case 'landlag': playAt(f, 'jump_land', f.st); break;
     case 'hit': playAt(f, f.react, f.st); break;
-    case 'launched': if (f.thrown) playAt(f, 'thrown', 8 + Math.min(f.st, 7)); else playAt(f, 'hit_air', f.st); break;
+    case 'launched': if (f.thrown) playAt(f, 'thrown', 8 + Math.min(f.st, 15)); else playAt(f, 'hit_air', f.st); break;
     case 'tech': playAt(f, 'block_stand_hold', f.st); break;
     case 'lying': playAt(f, f.qr ? 'lying' : 'knockdown', f.st); break;
     case 'getup': playAt(f, 'getup', Math.min(f.st, 23)); break;

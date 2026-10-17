@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { arena, run, I, B, N, snap } from './helpers.mjs';
-import { PHASE_TICKS, KO_STOP, KO_SLOW, ROUND_TIME, START_GAP } from '../src/engine/match.js';
+import { PHASE_TICKS, KO_PACE, ROUND_TIME, START_GAP } from '../src/engine/match.js';
+const KO_STOP = KO_PACE.normal.stop, KO_SLOW = KO_PACE.normal.slow;   // first KO of a best-of-3 is not match-deciding
 import { createWorld, step } from '../src/engine/world.js';
 import { STATS } from '../src/data/stats.js';
 
@@ -54,7 +55,7 @@ test('time over with equal HP percentage is a draw round: both get a point', () 
   assert.equal(w.match.end.winner, -1);
 });
 
-test('KO: final hit, 24 ticks of hitstop, then 40 ticks of slow-mo; PERFECT when the winner took no damage', () => {
+test('KO: final hit, 24 ticks of hitstop, then 24 ticks of slow-mo (40 if it decides the match); PERFECT when the winner took no damage', () => {
   const w = fighting();
   const [a, d] = w.fighters;
   d.hp = 5;
@@ -158,4 +159,25 @@ test('match is deterministic and serialisable mid-round', () => {
   assert.deepEqual(snap(a), snap(b));
   assert.equal(createWorld({ match: true }).match.phase, 'intro');
   void step;
+});
+
+test('match-deciding KO uses the longer pacing; winner plays a win pose, loser stays down', () => {
+  const w = arena({ match: 1 });
+  until(w, 'fight');
+  w.fighters[1].hp = 5;
+  until(w, 'ko', LP);
+  assert.equal(w.match.end.final, true);
+  const t0 = w.match.t;
+  const n = until(w, 'post');
+  assert.equal(n, KO_PACE.final.stop + KO_PACE.final.slow - t0);
+  run(w, 40, {}, {});
+  assert.ok(['win_a', 'win_b'].includes(w.fighters[0].anim));
+  assert.equal(w.fighters[1].state, 'ko');
+});
+
+test('round-1 intro plays the intro animation on both fighters', () => {
+  const w = arena({ match: true });
+  run(w, 30, {}, {});
+  assert.equal(w.fighters[0].anim, 'intro');
+  assert.equal(w.fighters[1].anim, 'intro');
 });

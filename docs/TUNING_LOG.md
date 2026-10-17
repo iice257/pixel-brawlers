@@ -167,3 +167,10 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - **HUD v0** (`src/ui/hud.js`): bars with the 28-tick-hold yellow lag bar, names, `need` round pips per side, centre timer (16px, blinks red at ≤10), announcer with the ART_BIBLE 9 gradient text (24px, 2px outline, 2px drop shadow, 150%→100% pop in 8 ticks). "FINAL ROUND" when both sides are one win from the match.
 - **Not done:** winner pose and intro animation (no art in the anim set, fighters stand idle), HUD restyle (6.1), round-count picker.
 - **`__debug`:** `setHP(p,n)`, `setTimer(n)`, `setMeter(p,n)`, `forceKO(p)`. URL params: `?rounds=1|3|5`, `?match=0` (bare sandbox), QA stills `?shot=hud|ko|over`.
+
+## 2.6b Orchestrator rulings applied
+- Throw reach is 46px centre to centre (`throwRange`, box far edge 46); gap 46 grabs, 47 whiffs.
+- Throw pair choreography is data (`THROW_PAIR` in `data/anims.js`): victim at +34/28 up (thrown_0), arcing over to +46/40, landing at +60 on release; back throw mirrors the x offset over ticks 4..13.
+- KO pacing is config (`KO_PACE` in `config2.js`): normal 24 hitstop / 24 slow / 60 post, match-deciding 24 / 40 / 90.
+- Round-1 intro plays the `intro` anim on both fighters; the winner plays `win_a`/`win_b` (picked from the world RNG when the round ends); the loser stays in `ko`/`lying`.
+- Sprite bake priority: idle/walk/jump, normals, reactions, rest.

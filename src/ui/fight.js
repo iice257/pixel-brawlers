@@ -40,7 +40,9 @@ function prebake(ids) {
   const queue = [];
   const seen = new Set();
   const add = (id, names) => { const a = spriteSet(id).anims; for (const n of names) for (const fr of a[n].frames) if (!seen.has(id + fr.pose)) { seen.add(id + fr.pose); queue.push([id, fr.pose]); } };
-  for (const id of ids) add(id, LOCO);                                          // locomotion first, then everything else the fight can show
+  const normals = ['LP', 'HP', 'LK', 'HK', '2LP', '2HP', '2LK', '2HK', 'jLP', 'jHP', 'jLK', 'jHK', 'throw'];
+  const reactions = ['block_stand_in', 'block_stand_hold', 'block_crouch_in', 'block_crouch_hold', 'hit_high', 'hit_low', 'hit_body', 'hit_air', 'thrown', 'knockdown', 'lying', 'getup', 'ko'];
+  for (const names of [LOCO, normals, reactions]) for (const id of ids) add(id, names);   // priority: idle/walk/jump, normals, reactions, then the rest (intro, win...)
   for (const id of ids) add(id, Object.keys(spriteSet(id).anims));
   const stats = { total: queue.length, done: 0 };
   const slice = () => {

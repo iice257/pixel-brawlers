@@ -39,7 +39,7 @@ test('hitboxes, pushback and stun match the table', () => {
   assert.deepEqual([T('2HK').pbHit, T('2HK').pbBlock, T('2HK').kd], [6, 8, 'hard']);
   assert.ok(T('2HP').launch && getMove('template', '2HP').juggleStart === 3);
   assert.equal(getMove('template', 'throw').hits[0].dmg, 100);
-  assert.equal(getMove('template', 'throw').throwRange, 42);
+  assert.equal(getMove('template', 'throw').throwRange, 46);
 });
 
 test('hit windows: first active tick is S+1, last is S+A', () => {

@@ -1,13 +1,14 @@
 // Match / round state machine (pure, serialisable). GAME_DESIGN 4.
 // Wraps the per-tick sim: it decides which inputs reach the fighters, when the timer runs, when a round ends and how it resets.
-import { STAGE_W } from '../config2.js';
+import { STAGE_W, KO_PACE, SLOW_EVERY } from '../config2.js';
+import { rngNext } from '../core/rng.js';
 import { createFighter } from './fighter.js';
 import { createCamera } from './camera.js';
 
 export const START_GAP = 80;                 // round start: 80px apart around the stage centre
 export const ROUND_TIME = 99, TIMER_TICKS = 60;
-export const PHASE_TICKS = { intro: 90, call: 72, fight: 30, timeup: 60, post: 90 };
-export const KO_STOP = 24, KO_SLOW = 40, SLOW_EVERY = 4;   // final-hit hitstop, then 40 ticks where fighters update every 4th tick
+export const PHASE_TICKS = { intro: 90, call: 72, fight: 30, timeup: 60 };
+export { KO_PACE, SLOW_EVERY };               // final-hit hitstop, slow-mo, post-KO hold (config2.js); the match-deciding KO is longer
 
 const NEUTRAL = { left: false, right: false, up: false, down: false, buttons: 0 };
 
@@ -29,11 +30,16 @@ export function resetRound(w) {
   w.thr = null;
 }
 
+const decided = (m) => (m.wins[0] >= m.need || m.wins[1] >= m.need) && m.wins[0] !== m.wins[1];
+const capped = (m) => m.round >= 2 * m.need + 1;           // endless draws: stop at the round cap
+
 function endRound(w, winner, reason) {
   const m = w.match;
-  m.end = { winner, reason, perfect: winner >= 0 && w.fighters[winner].dmgTaken === 0 };
   if (winner < 0) { m.wins[0]++; m.wins[1]++; } else m.wins[winner]++;
+  const final = decided(m) || capped(m);
+  m.end = { winner, reason, perfect: winner >= 0 && w.fighters[winner].dmgTaken === 0, final, pose: rngNext(w.rng) < 0.5 ? 'win_a' : 'win_b' };
 }
+const pace = (m) => KO_PACE[m.end.final ? 'final' : 'normal'];
 
 // maxHp[i]: used for the time-over comparison (HP percentage)
 function checkEnd(w, maxHp) {
@@ -41,7 +47,7 @@ function checkEnd(w, maxHp) {
   const ka = a.hp <= 0, kb = b.hp <= 0;
   if (ka || kb) {
     endRound(w, ka && kb ? -1 : ka ? 1 : 0, ka && kb ? 'double' : 'ko');
-    a.stop = b.stop = KO_STOP;
+    a.stop = b.stop = pace(m).stop;
     go(m, 'ko');
     return;
   }
@@ -54,9 +60,7 @@ function checkEnd(w, maxHp) {
 
 function nextRound(w) {
   const m = w.match, [wa, wb] = m.wins;
-  const decided = (wa >= m.need || wb >= m.need) && wa !== wb;
-  const capped = m.round >= 2 * m.need + 1;               // endless draws: stop at the round cap
-  if (decided || capped) { m.winner = wa === wb ? -1 : wa > wb ? 0 : 1; go(m, 'over'); return; }
+  if (decided(m) || capped(m)) { m.winner = wa === wb ? -1 : wa > wb ? 0 : 1; go(m, 'over'); return; }
   m.round++; m.timer = ROUND_TIME; m.tt = 0; m.end = null;
   resetRound(w);
   go(m, 'call');
@@ -67,7 +71,11 @@ export function stepMatch(w, inputs, ops, maxHp) {
   const m = w.match;
   m.t++;
   switch (m.phase) {
-    case 'intro': ops.sim(w, [NEUTRAL, NEUTRAL]); if (m.t >= PHASE_TICKS.intro) go(m, 'call'); break;
+    case 'intro':
+      ops.sim(w, [NEUTRAL, NEUTRAL]);
+      w.fighters.forEach((f) => { f.anim = 'intro'; f.at = m.t - 1; });          // round-1 intro pose sequence (88 ticks)
+      if (m.t >= PHASE_TICKS.intro) go(m, 'call');
+      break;
     case 'call': ops.sim(w, [NEUTRAL, NEUTRAL]); if (m.t >= PHASE_TICKS.call) go(m, 'fight'); break;
     case 'fight': case 'play':
       ops.sim(w, inputs);
@@ -76,13 +84,20 @@ export function stepMatch(w, inputs, ops, maxHp) {
       checkEnd(w, maxHp);
       if (m.phase === 'fight' && m.t >= PHASE_TICKS.fight) go(m, 'play');
       break;
-    case 'ko':
-      if (m.t <= KO_STOP || (m.t - KO_STOP) % SLOW_EVERY === 0) ops.sim(w, [NEUTRAL, NEUTRAL]); else ops.cam(w);
-      if (m.t >= KO_STOP + KO_SLOW) go(m, 'post');
+    case 'ko': {
+      const p = pace(m);
+      if (m.t <= p.stop || (m.t - p.stop) % SLOW_EVERY === 0) ops.sim(w, [NEUTRAL, NEUTRAL]); else ops.cam(w);
+      if (m.t >= p.stop + p.slow) go(m, 'post');
       break;
+    }
     case 'timeup': ops.sim(w, [NEUTRAL, NEUTRAL]); if (m.t >= PHASE_TICKS.timeup) go(m, 'post'); break;
-    case 'post': ops.sim(w, [NEUTRAL, NEUTRAL]); if (m.t >= PHASE_TICKS.post) nextRound(w); break;
-    case 'over': ops.sim(w, [NEUTRAL, NEUTRAL]); break;
+    case 'post': case 'over': {
+      ops.sim(w, [NEUTRAL, NEUTRAL]);
+      const win = m.end?.winner >= 0 ? w.fighters[m.end.winner] : null;          // winner plays win_a/win_b, loser stays down
+      if (win && win.state === 'idle') { win.anim = m.end.pose; win.at = m.phase === 'over' ? 999 : m.t - 1; }
+      if (m.phase === 'post' && m.t >= pace(m).post) nextRound(w);
+      break;
+    }
     default: break;
   }
 }

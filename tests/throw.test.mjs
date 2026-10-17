@@ -31,8 +31,8 @@ test('throw: LP+LK grabs, deals 100 damage, hard knockdown, lies 34, then getup 
   assert.equal(log.filter((s) => s === 'getup').length, GETUP);
 });
 
-test('throw range: connects at 53px centre distance, whiffs at 54', () => {
-  const near = arena({ gap: 53 }), far = arena({ gap: 54 });
+test('throw range: connects at 46px centre distance, whiffs at 47', () => {
+  const near = arena({ gap: 46 }), far = arena({ gap: 47 });
   run(near, 12, THROW, {});
   run(far, 12, THROW, {});
   assert.ok(['thrown', 'launched'].includes(near.fighters[1].state));

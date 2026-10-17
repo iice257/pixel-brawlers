@@ -4,6 +4,7 @@ import { STATS } from '../data/stats.js';
 import { BTN, SIMUL_WINDOW, dirX, dirY } from '../core/buffer.js';
 import { activeHits, boxesOf, boxKind, canGuard, toWorld, backToNeutral, BOXES, AIR_HIT } from './fighter.js';
 import { getMove } from './moves.js';
+import { pairOffset } from '../data/anims.js';
 
 export const BLOCK_STOP_PENALTY = 2;         // blocked hitstop = hit hitstop - 2
 export const CORNER_SHARE = 0.4;             // attacker is pushed back by this share of a cornered defender's pushback (see world.clampStage)
@@ -106,14 +107,8 @@ export const THROW_TOTAL = 24;              // attacker is free this many ticks 
 const THROWABLE = new Set(['idle', 'walk_f', 'walk_b', 'crouch', 'guard', 'dash_f', 'dash_b', 'attack', 'landlag']);   // not prejump, stun, air, lying
 
 export const throwable = (d) => d.y <= 0 && !d.inv && THROWABLE.has(d.state);
-function throwBox(a) {
-  const m = getMove(a.id, 'throw');
-  return toWorld(a, [0, 0, m.throwRange, m.hits[0].box[3]]);
-}
-const inThrowRange = (a, d) => {
-  const pb = toWorld(d, BOXES[boxKind(d)].push ?? BOXES.stand.push), tb = throwBox(a);
-  return overlap(tb, pb);
-};
+// Reach is centre to centre: the grab connects when |dx| <= throwRange (46; pushboxes touch at 24, so a visible gap of ~22px remains).
+const inThrowRange = (a, d) => Math.abs(a.x - d.x) <= getMove(a.id, 'throw').throwRange && (a.x - d.x) * a.facing <= 0;
 
 function startTech(w, ...pair) {
   w.thr = null;
@@ -161,17 +156,16 @@ export function stepThrow(w) {
     d.hp = Math.max(0, d.hp - dmg); d.dmgTaken += dmg; d.ko = d.hp <= 0;
   }
   if (k < THROW_RELEASE) {
-    const s = Math.min(1, Math.max(0, (k - 4) / 9));
-    const off = t.back ? 20 - 40 * s : 20;
-    d.x = a.x + a.facing * off;
-    d.y = 6 + Math.round(18 * Math.sin((Math.PI * k) / THROW_RELEASE));
-    d.facing = off >= 0 ? -a.facing : a.facing;
+    const p = pairOffset(k, t.back);
+    d.x = a.x + a.facing * p.x;
+    d.y = p.y;
+    d.facing = p.x >= 0 ? -a.facing : a.facing;
     d.anim = 'thrown'; d.at = k;
   } else if (k === THROW_RELEASE) {
     const away = t.back ? -a.facing : a.facing;
     d.state = 'launched'; d.st = 0; d.thrown = true; d.inv = null;
     d.vx = away * 2.0; d.vy = 3.5; d.y = Math.max(d.y, 1); d.kd = 'hard';
-    d.x = a.x + a.facing * (t.back ? -24 : 24);
+    d.x = a.x + a.facing * (t.back ? -60 : 60);
   }
   a.anim = 'throw'; a.at = Math.min(5 + k, 30);
   if (k >= THROW_TOTAL) { w.thr = null; backToNeutral(a, STATS[a.id], false); }

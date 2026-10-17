@@ -39,8 +39,8 @@ export const TEMPLATE = {
   jLK: air('jLK', 1, [4, 10], hit(LIGHT, { box: [2, 10, 36, 22], dmg: 35, level: 'H', hs: 12, bs: 9, pbHit: 2, pbBlock: 2 })),
   jHK: air('jHK', 3, [9, 6],  hit(HEAVY, { box: [2, 8, 46, 28], dmg: 70, level: 'H', hs: null, bs: 14, pbHit: 4, pbBlock: 4, kd: 'soft', launch: SOFT })),
   throw: {
-    id: 'throw', anim: 'throw', state: 'stand', weight: 0, startup: 5, active: 2, recovery: 24, throwRange: 42,
-    hits: [{ box: [0, 0, 42, 80], dmg: 100, level: 'T', hs: null, bs: null, pbHit: 0, pbBlock: 0, hitstop: 12, kd: 'hard', launch: null, juggleCost: 0, meterHit: 10, meterBlock: 0 }],
+    id: 'throw', anim: 'throw', state: 'stand', weight: 0, startup: 5, active: 2, recovery: 24, throwRange: 46,
+    hits: [{ box: [0, 0, 46, 80], dmg: 100, level: 'T', hs: null, bs: null, pbHit: 0, pbBlock: 0, hitstop: 12, kd: 'hard', launch: null, juggleCost: 0, meterHit: 10, meterBlock: 0 }],
     cancels: [],
   },
 };

@@ -53,10 +53,25 @@ Object.assign(ANIMS, {
   jHP:   air('jHP', [7, 6, 0],  [4, 14, 38, 36]),
   jLK:   air('jLK', [4, 10, 0], [2, 10, 36, 22]),
   jHK:   air('jHK', [9, 6, 0],  [2, 8, 46, 28]),
-  throw: attack('throw', [5, 2, 24], [1, 1, 3], [0, 40, 42, 30]),   // reach / grab (active) / hold / release / recover; box far edge 42 = GAME_DESIGN throw range
+  throw: attack('throw', [5, 2, 24], [1, 1, 3], [0, 40, 46, 30]),   // reach / grab (active) / hold / release / recover; box far edge 46 = throw reach, measured centre to centre
 });
 
 // Which limb group(s) carry the hit: the reach check only measures those parts (hand/foot tip).
+// Throw pair choreography: where the victim sits relative to the thrower (forward-relative px, y up) per tick of the hold. Linear between keys.
+// Pose index follows the `thrown` anim (8 ticks each): thrown_0 held in front, thrown_1 arcing over, thrown_2 on release.
+export const THROW_PAIR = { keys: [[0, 34, 28], [5, 34, 28], [9, 46, 40], [13, 60, 6]], backFrom: 4, backTo: 13 };
+export function pairOffset(k, back) {
+  const ks = THROW_PAIR.keys;
+  let i = 0;
+  while (i < ks.length - 2 && k > ks[i + 1][0]) i++;
+  const [t0, x0, y0] = ks[i], [t1, x1, y1] = ks[i + 1];
+  const u = Math.min(1, Math.max(0, (k - t0) / (t1 - t0)));
+  let x = x0 + (x1 - x0) * u;
+  const y = y0 + (y1 - y0) * u;
+  if (back) { const s = Math.min(1, Math.max(0, (k - THROW_PAIR.backFrom) / (THROW_PAIR.backTo - THROW_PAIR.backFrom))); x *= 1 - 2 * s; }
+  return { x, y };
+}
+
 const LIMBS = { LP: ['armF'], HP: ['armF'], '2LP': ['armF'], '2HP': ['armF'], jLP: ['armF'], jHP: ['armF'],
   LK: ['legF'], HK: ['legF'], '2LK': ['legF'], '2HK': ['legF'], jLK: ['legF'], jHK: ['legF'], throw: ['armF', 'armB'] };
 for (const [name, limb] of Object.entries(LIMBS)) ANIMS[name].limb = limb;
