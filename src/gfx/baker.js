@@ -22,7 +22,7 @@ function partCanvas(fighter, name) {
 }
 
 const scratch = document.createElement('canvas');
-scratch.width = CW; scratch.height = CH;
+scratch.width = 256; scratch.height = 256;                 // big enough for any part's rotation region
 const sctx = scratch.getContext('2d', { willReadFrequently: true });
 
 // Rotation can blend neighbouring palette colours on edge pixels; snap every opaque pixel back to the palette.
@@ -42,38 +42,42 @@ function snapper(fighter) {
   };
 }
 
-// Draw one op (rotated, thresholded) -> {img: ImageData with outline+part, bbox of opaque pixels}.
+// Draw one op (rotated, thresholded) -> {img: ImageData with outline+part, rx, ry (region origin in working-canvas px)}.
+// Only a square region around the joint is processed (radius = farthest part corner from the pivot, any rotation fits).
 function bakeOp(fighter, op) {
-  sctx.clearRect(0, 0, CW, CH);
-  sctx.imageSmoothingEnabled = false;
   const cv = partCanvas(fighter, op.part);
-  sctx.save();
+  const half = Math.ceil(Math.hypot(Math.max(op.pivot[0] + 1, cv.width - op.pivot[0]), Math.max(op.pivot[1] + 1, cv.height - op.pivot[1]))) + 3;
+  const R = half * 2;
   // snap the joint to a pixel centre so 0/90/180/270 degree rotations stay pixel exact
   const ax = Math.round(OX + op.at[0] - 0.5) + 0.5, ay = Math.round(OY + op.at[1] - 0.5) + 0.5;
-  sctx.translate(ax, ay);
+  const rx = Math.round(ax - 0.5) - half, ry = Math.round(ay - 0.5) - half;
+  sctx.clearRect(0, 0, R, R);
+  sctx.imageSmoothingEnabled = false;
+  sctx.save();
+  sctx.translate(ax - rx, ay - ry);
   sctx.rotate(op.theta);
   sctx.drawImage(cv, -(op.pivot[0] + 0.5), -(op.pivot[1] + 0.5));
   sctx.restore();
-  const src = sctx.getImageData(0, 0, CW, CH);
+  const src = sctx.getImageData(0, 0, R, R);
   const d = src.data;
-  const solid = new Uint8Array(CW * CH);
-  for (let i = 0; i < CW * CH; i++) {
+  const solid = new Uint8Array(R * R);
+  for (let i = 0; i < R * R; i++) {
     if (d[i * 4 + 3] >= 128) { solid[i] = 1; d[i * 4 + 3] = 255; } else d[i * 4 + 3] = 0;
   }
   const snap = snapper(fighter);
-  const out = new ImageData(CW, CH);
+  const out = new ImageData(R, R);
   const o = out.data;
-  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
-    const i = y * CW + x;
+  for (let y = 0; y < R; y++) for (let x = 0; x < R; x++) {
+    const i = y * R + x;
     if (solid[i]) {
       let [r, g, b] = snap(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]);
       if (op.back) { r = Math.round(r * BACK_TINT); g = Math.round(g * BACK_TINT); b = Math.round(b * BACK_TINT); }
       o[i * 4] = r; o[i * 4 + 1] = g; o[i * 4 + 2] = b; o[i * 4 + 3] = 255;
-    } else if ((x > 0 && solid[i - 1]) || (x < CW - 1 && solid[i + 1]) || (y > 0 && solid[i - CW]) || (y < CH - 1 && solid[i + CW])) {
+    } else if ((x > 0 && solid[i - 1]) || (x < R - 1 && solid[i + 1]) || (y > 0 && solid[i - R]) || (y < R - 1 && solid[i + R])) {
       o[i * 4] = OUT_RGB[0]; o[i * 4 + 1] = OUT_RGB[1]; o[i * 4 + 2] = OUT_RGB[2]; o[i * 4 + 3] = 255;
     }
   }
-  return out;
+  return { img: out, rx, ry, R };
 }
 
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -115,22 +119,21 @@ export function bakePose(fighter, pose, only = null) {   // only: optional list 
   main.width = CW; main.height = CH;
   const mctx = main.getContext('2d', { willReadFrequently: true });
   const tmp = document.createElement('canvas');
-  tmp.width = CW; tmp.height = CH;
+  tmp.width = 256; tmp.height = 256;
   const tctx = tmp.getContext('2d');
   const feet = { top: 1e9, bottom: -1 };
-  const footIds = new Set();
   for (const op of ops) {
-    const img = bakeOp(fighter, op);
-    tctx.clearRect(0, 0, CW, CH);
+    const { img, rx, ry, R } = bakeOp(fighter, op);
+    tctx.clearRect(0, 0, 256, 256);
     tctx.putImageData(img, 0, 0);
-    if (!only || only.includes(op.group)) mctx.drawImage(tmp, 0, 0);
+    if (!only || only.includes(op.group)) mctx.drawImage(tmp, 0, 0, R, R, rx, ry, R, R);
     if (op.part.startsWith('foot_')) {
       // lowest opaque pixel of this foot (not its outline)
       const dd = img.data;
-      for (let y = CH - 1; y >= 0; y--) {
+      for (let y = R - 1; y >= 0; y--) {
         let hit = false;
-        for (let x = 0; x < CW; x++) { const i = (y * CW + x) * 4; if (dd[i + 3] && !(dd[i] === OUT_RGB[0] && dd[i + 1] === OUT_RGB[1] && dd[i + 2] === OUT_RGB[2])) { hit = true; break; } }
-        if (hit) { feet.bottom = Math.max(feet.bottom, y); break; }
+        for (let x = 0; x < R; x++) { const i = (y * R + x) * 4; if (dd[i + 3] && !(dd[i] === OUT_RGB[0] && dd[i + 1] === OUT_RGB[1] && dd[i + 2] === OUT_RGB[2])) { hit = true; break; } }
+        if (hit) { feet.bottom = Math.max(feet.bottom, ry + y); break; }
       }
     }
   }

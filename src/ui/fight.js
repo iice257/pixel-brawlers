@@ -1,0 +1,214 @@
+// New-engine fight scene (reached at /?new=1). Reads the pure world and draws baked sprites at integer positions.
+// Controls: P1 WASD + J K U I + L, P2 arrows + . / ; ' + , (P2 is a standing dummy with ?dummy=1; P1 then reads both layouts).
+// F2 = box overlay, F3 = FPS / state panel, R = reset positions.
+import { W, H, FLOOR_Y, STAGE_W } from '../config2.js';
+import { createInput } from '../core/input.js';
+import { createLoop } from '../core/loop.js';
+import { createWorld, step } from '../engine/world.js';
+import { boxesOf } from '../engine/fighter.js';
+import { camPos } from '../engine/camera.js';
+import { buildPalette } from '../gfx/palette.js';
+import { bakePose, drawBaked } from '../gfx/baker.js';
+import { poseLibrary } from '../gfx/poses.js';
+import { animsFor, frameAt } from '../data/anims.js';
+import * as surge from '../data/fighters/surge.js';
+import * as brick from '../data/fighters/brick.js';
+
+const MODS = { surge, brick };
+const NEUTRAL = { left: false, right: false, up: false, down: false, buttons: 0 };
+const BOX_COLORS = { push: '#4da3ff', hurt: '#41e07a', hit: '#ff4d4d', throw: '#ffd84a' };
+
+// ---------------------------------------------------------------------------------------------- sprites
+const sprites = {};
+function spriteSet(id) {
+  return sprites[id] ??= {
+    fighter: { id, parts: MODS[id].parts, pivots: MODS[id].pivots, palette: buildPalette(MODS[id].palette) },
+    lib: poseLibrary(id), anims: animsFor(id), baked: new Map(),
+  };
+}
+function baked(id, poseName) {
+  const s = spriteSet(id);
+  let b = s.baked.get(poseName);
+  if (!b) { b = bakePose(s.fighter, s.lib[poseName]); s.baked.set(poseName, b); }
+  return b;
+}
+const LOCO = ['idle', 'walk_f', 'walk_b', 'crouch_in', 'crouch_hold', 'crouch_out', 'jump_prep', 'jump_rise', 'jump_apex', 'jump_fall', 'jump_land', 'jump_f', 'jump_b', 'dash_f', 'dash_b'];
+// Idle is baked up front; the rest is baked in ~5 ms slices after each frame so boot is instant (anything not ready yet bakes on demand).
+function prebake(ids) {
+  const queue = [];
+  for (const id of ids) { const a = spriteSet(id).anims; for (const n of LOCO) for (const fr of a[n].frames) queue.push([id, fr.pose]); }
+  const stats = { total: queue.length, done: 0 };
+  const slice = () => {
+    const end = performance.now() + 5;
+    while (queue.length && performance.now() < end) { const [id, p] = queue.shift(); baked(id, p); stats.done++; }
+    if (queue.length) requestAnimationFrame(slice);
+  };
+  for (const id of ids) baked(id, spriteSet(id).anims.idle.frames[0].pose);
+  requestAnimationFrame(slice);
+  return stats;
+}
+const poseOf = (f) => { const a = spriteSet(f.id).anims[f.anim]; return a.frames[frameAt(a, f.at)].pose; };
+
+// ---------------------------------------------------------------------------------------------- placeholder stage
+// Dark gradient (hard bands), two parallax skylines, a floor with tile seams: enough to see the camera move.
+const hash = (n) => { n = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); n ^= n >>> 13; n = Math.imul(n, 0xc2b2ae35); return (n ^ (n >>> 16)) >>> 0; };
+const SKY = ['#0b0820', '#0e0a28', '#120d30', '#170f37', '#1c123d', '#221543', '#29184a', '#301b50', '#381f55', '#40235a', '#48275d', '#4f2b5f'];
+function skyline(ctx, camX, lift, parallax, baseY, minH, maxH, color, windows) {
+  const seg = 28;
+  const first = Math.floor((camX * parallax) / seg) - 1;
+  for (let i = first; i < first + Math.ceil(W / seg) + 3; i++) {
+    const h = minH + (hash(i * 31 + parallax * 1000) % (maxH - minH)), x = i * seg - Math.round(camX * parallax);
+    const bw = 20 + (hash(i * 17 + 5) % 8);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, baseY + lift - h, bw, h);
+    if (windows) {
+      ctx.fillStyle = '#ffcf6a';
+      for (let wy = 0; wy < h - 6; wy += 8) for (let wx = 3; wx < bw - 4; wx += 6) if (hash(i * 131 + wy * 7 + wx) % 5 === 0) ctx.fillRect(x + wx, baseY + lift - h + 4 + wy, 2, 3);
+    }
+  }
+}
+function drawStage(ctx, cam) {
+  const lift = cam.lift, camX = cam.x;
+  const bandH = Math.ceil((FLOOR_Y + 20) / SKY.length);
+  for (let i = 0; i < SKY.length; i++) { ctx.fillStyle = SKY[i]; ctx.fillRect(0, i * bandH - 16 + lift, W, bandH + 17); }
+  skyline(ctx, camX, lift, 0.25, FLOOR_Y - 34, 40, 96, '#1a1038', false);
+  skyline(ctx, camX, lift, 0.5, FLOOR_Y - 8, 26, 70, '#120a2a', true);
+  // floor
+  const top = FLOOR_Y + lift;
+  ctx.fillStyle = '#2a1a44'; ctx.fillRect(0, top, W, H - top + 20);
+  ctx.fillStyle = '#4a3070'; ctx.fillRect(0, top, W, 2);
+  ctx.fillStyle = '#1d1233'; ctx.fillRect(0, top + 2, W, 3);
+  for (let x = -((camX % 48) + 48) % 48; x < W + 48; x += 48) {           // vertical tile seams scroll 1:1 with the world
+    ctx.fillStyle = '#1d1233'; ctx.fillRect(x, top + 5, 2, H);
+    ctx.fillStyle = '#34225a'; ctx.fillRect(x + 2, top + 5, 1, H);
+  }
+  ctx.fillStyle = '#1d1233'; ctx.fillRect(0, top + 14, W, 2);
+  // stage edges: posts at the clamp limits so the walls read
+  for (const wx of [0, STAGE_W]) {
+    const sx = wx - Math.round(camX);
+    if (sx > -12 && sx < W + 12) { ctx.fillStyle = '#ffcf33'; ctx.fillRect(sx - 1, top - 6, 2, 6); }
+  }
+}
+
+// ---------------------------------------------------------------------------------------------- fighters + overlays
+function drawShadow(ctx, f, sx, floorSy) {
+  const w = Math.max(10, Math.round(30 - f.y / 4));
+  ctx.fillStyle = '#0a0614';
+  ctx.fillRect(Math.round(sx - w / 2), floorSy - 1, w, 3);
+  ctx.fillRect(Math.round(sx - w / 2) + 2, floorSy - 2, w - 4, 5);
+}
+function drawFighter(ctx, f, cam) {
+  const sx = f.x - cam.x, floorSy = FLOOR_Y + cam.lift;
+  drawShadow(ctx, f, sx, floorSy);
+  drawBaked(ctx, baked(f.id, poseOf(f)), sx, floorSy - Math.round(f.y), f.facing);
+}
+function drawBoxes(ctx, world, cam) {
+  const rect = (b, color) => {
+    const x = Math.round(b[0] - cam.x), y = Math.round(FLOOR_Y + cam.lift - (b[1] + b[3]));
+    ctx.fillStyle = color + '33'; ctx.fillRect(x, y, b[2], b[3]);
+    ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, b[2] - 1, b[3] - 1);
+  };
+  for (const f of world.fighters) {
+    const bx = boxesOf(f);
+    if (bx.push) rect(bx.push, BOX_COLORS.push);
+    bx.hurt.forEach((b) => rect(b, BOX_COLORS.hurt));
+    bx.hit.forEach((b) => rect(b, BOX_COLORS.hit));
+    bx.throw.forEach((b) => rect(b, BOX_COLORS.throw));
+    const x = Math.round(f.x - cam.x), y = Math.round(FLOOR_Y + cam.lift - f.y);       // feet origin marker
+    ctx.fillStyle = '#fff'; ctx.fillRect(x, y - 1, 1, 3); ctx.fillRect(x - 1, y, 3, 1);
+  }
+  ctx.font = '8px "Press Start 2P", monospace'; ctx.textBaseline = 'top';
+  [['push', 4], ['hurt', 46], ['hit', 88], ['throw', 124]].forEach(([k, x]) => {
+    ctx.fillStyle = BOX_COLORS[k]; ctx.fillRect(x, H - 12, 6, 6);
+    ctx.fillStyle = '#e9ebff'; ctx.fillText(k, x + 9, H - 13);
+  });
+}
+function drawPanel(ctx, world, stats, input) {
+  ctx.fillStyle = 'rgba(8, 6, 20, 0.78)'; ctx.fillRect(2, 2, 252, 80);
+  ctx.font = '8px "Press Start 2P", monospace'; ctx.textBaseline = 'top'; ctx.fillStyle = '#ffcf33';
+  ctx.fillText(`${stats.fps} FPS  TICK ${world.tick}  STEPS ${stats.steps}`, 6, 6);
+  world.fighters.forEach((f, i) => {
+    const y = 20 + i * 28;
+    ctx.fillStyle = i ? '#ff9a64' : '#35e0ff';
+    ctx.fillText(`P${i + 1} ${f.id.toUpperCase()} ${f.state}${f.inv ? ' INV' : ''}`, 6, y);
+    ctx.fillStyle = '#e9ebff';
+    ctx.fillText(`x${f.x.toFixed(1)} y${f.y.toFixed(1)} vx${f.vx.toFixed(1)} d${f.buf.dir}`, 6, y + 10);
+    ctx.fillText(`${f.anim} ${f.at}  cam ${camPos(world.camera).x}`, 6, y + 20);
+  });
+}
+
+// ---------------------------------------------------------------------------------------------- boot
+export function boot(canvas, params = new URLSearchParams(location.search)) {
+  const ctx = canvas.getContext('2d');
+  canvas.width = W; canvas.height = H;
+  const fit = () => {
+    const stage = document.getElementById('stage');
+    const availW = stage.clientWidth;
+    const availH = window.innerHeight - stage.getBoundingClientRect().top - 24;
+    const raw = Math.min(availW / W, availH / H);
+    const scale = raw >= 1 ? Math.floor(raw) : raw;
+    canvas.style.width = `${Math.round(W * scale)}px`;
+    canvas.style.height = `${Math.round(H * scale)}px`;
+  };
+  addEventListener('resize', fit);
+  document.addEventListener('fullscreenchange', fit);
+  const hint = document.querySelector('.hint');
+  if (hint) hint.innerHTML = '<b>P1</b> WASD move · J K U I attack · L block &nbsp;|&nbsp; <b>P2</b> arrows · . / ; \' · , &nbsp;|&nbsp; <b>F2</b> boxes · <b>F3</b> stats · <b>R</b> reset · <b>F</b> fullscreen';
+  document.title = 'Pixel Brawlers (new engine)';
+
+  const p1 = MODS[params.get('p1')] ? params.get('p1') : 'surge';
+  const p2 = MODS[params.get('p2')] ? params.get('p2') : 'brick';
+  const dummy = params.get('dummy') === '1';
+  let world = createWorld({ p1, p2, seed: 1 });
+  const input = createInput();
+  let showBoxes = params.get('boxes') === '1', showPanel = params.get('panel') === '1';
+
+  const t0 = performance.now();
+  const bakeStats = prebake([p1, p2]);
+  const bakeMs = Math.round(performance.now() - t0);
+
+  addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    if (e.code === 'F2') showBoxes = !showBoxes;
+    else if (e.code === 'F3') showPanel = !showPanel;
+    else if (e.code === 'KeyR') world = createWorld({ p1, p2, seed: 1 });
+    else if (e.code === 'KeyF') { if (document.fullscreenElement) document.exitFullscreen(); else canvas.parentElement.requestFullscreen?.(); }
+  });
+
+  let frozen = false;
+  const tickFn = () => {
+    if (frozen) return;
+    input.poll();
+    step(world, [input.read(0, { solo: dummy }), dummy ? NEUTRAL : input.read(1)]);
+  };
+  const render = () => {
+    ctx.imageSmoothingEnabled = false;
+    const cam = camPos(world.camera);
+    drawStage(ctx, cam);
+    // the fighter that acted last draws in front: for now P1 behind P2 unless P1 is airborne
+    const order = world.fighters[0].y > 0 || world.fighters[0].state !== 'idle' ? [1, 0] : [0, 1];
+    for (const i of order) drawFighter(ctx, world.fighters[i], cam);
+    if (showBoxes) drawBoxes(ctx, world, cam);
+    if (showPanel) drawPanel(ctx, world, loop.stats, input);
+  };
+  const loop = createLoop({ step: tickFn, render });
+  if (params.get('shot') === 'loco') {   // QA still: SURGE jumps forward over a crouching BRICK, then the sim freezes
+    const N = NEUTRAL, dn = { ...N, down: true };
+    for (let i = 0; i < 20; i++) step(world, [{ ...N, right: true }, dn]);
+    for (let i = 0; i < 3; i++) step(world, [{ ...N, right: true, up: true }, dn]);
+    for (let i = 0; i < 14; i++) step(world, [{ ...N, right: true }, dn]);
+    frozen = true;
+  }
+  window.__game = { get world() { return world; }, input, loop, bakeMs, bakeStats };
+  window.__debug = {
+    boxes(on = !showBoxes) { showBoxes = on; },
+    panel(on = !showPanel) { showPanel = on; },
+    place(p, x, y = 0) { world.fighters[p].x = x; world.fighters[p].y = y; },
+    reset() { world = createWorld({ p1, p2, seed: 1 }); },
+    stepN(n, a = NEUTRAL, b = NEUTRAL) { for (let i = 0; i < n; i++) step(world, [a, b]); render(); },
+  };
+  fit();
+  render();
+  loop.start();
+  return window.__game;
+}

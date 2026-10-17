@@ -116,3 +116,12 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Air normals: `recovery: 0` with `landLag: 3` (whiff landing lag), so S/A match the anim tables. Air pushback uses the single table value for both hit and block.
 - Throw: throwRange 42; the anim hitbox in `anims.js` is the arm band used by the viewer reach check, so the test only compares its far edge with the range.
 - Derived advantages for modified fighters (not in the doc): SURGE HP +5/-3, BRICK HP +3/-5, BRICK 2HP block -12 (doc normal 2HP -11).
+
+## 2.3 Locomotion, boxes and camera
+
+- Engine: `src/engine/{fighter,world,camera}.js`. Debug scene at `/?new=1` (`boxes=1`, `panel=1`, `dummy=1`, `p1=`, `p2=`, `shot=loco` for the QA still); F2 boxes, F3 stats, R reset. Legacy stays at `/`.
+- Dash velocity is `v0 * 0.95^st` (`stats.js` dashF v0 4.4, dashB v0 3.6). The decay is not in the spec: it gives about 45px forward in 14 ticks and 40px back in 16. Dash actionable at tick 8; back dash strike invulnerable on ticks 1-6.
+- Jump integration `y += vy - g/2; vy -= g` with vy0 8, g 0.41 lands exactly on apex 78 and 39 airborne ticks. Jump x speed forward 2.6, back -2.2 (BRICK x0.97 on vy and vx). Prejump 3 ticks; landing anim 3 ticks and not a lock.
+- Crouch in/out 6 ticks each (anim only, never blocks input). Facing turns only when grounded and actionable, so cross-ups hold their facing until landing.
+- Pushboxes: grounded overlap splits evenly, a wall-clamped fighter's share goes to the other, airborne bodies push 1px/tick apart. Max separation 296 pulls back whoever moved away. Camera ease 0.18, lift up to 14px (full at height 78), render position rounded.
+- Baker: `bakeOp` now processes only a square region around the joint (pixel-identity checked on all 276 poses of both fighters: 0 differences, about 2x faster). The fight scene bakes idle at boot and the other locomotion poses in 5ms slices per frame (boot 150ms instead of 4s); anything not ready yet bakes on demand.
