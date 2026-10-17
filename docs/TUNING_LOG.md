@@ -184,3 +184,14 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - **Juggle:** a launching hit gives the victim `juggleStart` (2HP: 3) or 3 for hard-KD launches (2HK); soft-KD launchers (HK, jHK) open no juggle. Hitting a launched victim costs `juggleCost`; a hit needs points >= cost (supers need 1 and spend none). Juggle hits re-launch with the air-hit arc and keep a hard knockdown. A KO'd or thrown victim cannot be juggled.
 - **Combo counter UI:** "N" + "HITS" + "DMG n" on the victim's side, pops each hit, holds 40 ticks after the combo ends (fades over the last 10).
 - **Not done:** jump cancel (stretch), meter gain from hits (the doc's meter section is not in 2.7).
+
+## 2.8 FX
+
+- Engine stays pure: `combat.apply` / `stepThrow` push `{type:'hit'|'ko', x, y, level, dmg, block, heavy, by, to, dir, tick}` onto `world.events` (cleared at the start of every `stepSim`). Hit point = midpoint of the hitbox/hurtbox overlap; throws use the defender's chest.
+- `src/gfx/fx.js` consumes events after each sim step (`tickFx`), so FX are tick-accurate and freeze with hitstop. Fixed pool of 128 slots, recycled oldest-first, no allocation per frame.
+- Sparks: light 4 ticks, heavy 8 ticks (+6 sparks), block 5 ticks (+3 shards). Heavy = hitstop >= 10.
+- Defender tint: white 2 ticks, then red 4. Blocks do not tint.
+- Shake: amp = clamp(dmg/12, 1, 6), ticks = max(2, round(dmg/6)); block 1px/2 ticks; KO 8px/30 ticks. `FX_OPTIONS.shake` = off | low (50%) | full. Applied to stage, fighters and FX, not the HUD.
+- Dust (walk start, dash, jump, landing, knockdown slam) and afterimages (3 ghosts, 8 ticks) are derived renderer-side from state changes.
+- Measured sim + FX cost: ~0.01 ms per tick in node (budget 4 ms).
+- Stills: `media/qa/phase2-2.8-fx.png` (heavy hit), `phase2-2.8-fxblock.png` (block).

@@ -46,11 +46,14 @@ const hittable = (d, boxBottom, h) => {
   return true;
 };
 
+// Midpoint of the overlap of two boxes: where the hit FX appears.
+const contactPoint = (a, b) => [(Math.max(a[0], b[0]) + Math.min(a[0] + a[2], b[0] + b[2])) / 2, (Math.max(a[1], b[1]) + Math.min(a[1] + a[3], b[1] + b[3])) / 2];
+
 function findHit(a, d) {
   for (const w of activeHits(a)) {
     if (w.done || w.hit.level === 'T') continue;
-    const hurts = boxesOf(d).hurt;
-    if (hurts.some((hb) => overlap(w.box, hb)) && hittable(d, w.box[1], w.hit)) return w;
+    const hb = boxesOf(d).hurt.find((b) => overlap(w.box, b));
+    if (hb && hittable(d, w.box[1], w.hit)) { w.pos = contactPoint(w.box, hb); return w; }
   }
   return null;
 }
@@ -61,7 +64,8 @@ function react(d, w) {
   return cy >= 70 ? 'hit_high' : 'hit_body';
 }
 
-function apply(ev, tick) {
+function apply(ev, world) {
+  const tick = world.tick;
   const { a, d, w, blocked } = ev, h = w.hit;
   const away = Math.sign(d.x - a.x) || -d.facing;
   a.hitDone[w.i] = true;
@@ -72,6 +76,7 @@ function apply(ev, tick) {
   if (blocked) {
     d.state = 'blockstun'; d.st = 0; d.stun = h.bs; d.stance = ev.stance;
     d.kvx = away * h.pbBlock; d.vx = 0;
+    world.events.push({ type: 'hit', x: w.pos[0], y: w.pos[1], level: h.level, dmg: 0, block: true, heavy: h.hitstop >= 10, by: a.idx, to: d.idx, dir: Math.sign(away), tick });
     return;
   }
   const cb = d.cb;
@@ -84,6 +89,8 @@ function apply(ev, tick) {
   d.hp = Math.max(0, d.hp - dmg);
   d.dmgTaken += dmg;
   d.ko = d.hp <= 0;
+  world.events.push({ type: 'hit', x: w.pos[0], y: w.pos[1], level: h.level, dmg, block: false, heavy: h.hitstop >= 10, by: a.idx, to: d.idx, dir: Math.sign(away), tick });
+  if (d.ko) world.events.push({ type: 'ko', x: d.x, y: d.y + 50, to: d.idx, tick });
   const airborne = d.y > 0;
   const launch = h.launch ?? (d.ko ? { vx: -2.4, vy: 4.5 } : airborne ? { vx: -AIR_HIT.vx, vy: AIR_HIT.vy } : null);
   if (launch) {
@@ -108,7 +115,7 @@ export function resolveHits(world) {
     const stance = guardStance(d, a);
     events.push({ a, d, w, stance, blocked: stance !== null && blocksLevel(w.hit.level, stance) });
   }
-  for (const ev of events) apply(ev, world.tick);
+  for (const ev of events) apply(ev, world);
   resolveThrows(world);
   return events;
 }
@@ -167,6 +174,8 @@ export function stepThrow(w) {
     const m = getMove(a.id, 'throw');
     const dmg = Math.round(m.hits[0].dmg * STATS[a.id].pwr * STATS[d.id].def);   // fixed: no combo scaling
     d.hp = Math.max(0, d.hp - dmg); d.dmgTaken += dmg; d.ko = d.hp <= 0;
+    w.events.push({ type: 'hit', x: d.x, y: d.y + 40, level: 'T', dmg, block: false, heavy: true, by: a.idx, to: d.idx, dir: a.facing, tick: w.tick });
+    if (d.ko) w.events.push({ type: 'ko', x: d.x, y: d.y + 40, to: d.idx, tick: w.tick });
   }
   if (k < THROW_RELEASE) {
     const p = pairOffset(k, t.back);

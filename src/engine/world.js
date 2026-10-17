@@ -19,7 +19,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export function createWorld({ p1 = 'surge', p2 = 'brick', seed = 1, match = false } = {}) {
   const mid = STAGE_W / 2;
   const fighters = [createFighter(p1, 0, mid - START_GAP / 2, 1), createFighter(p2, 1, mid + START_GAP / 2, -1)];
-  return { tick: 0, rng: createRng(seed), stage: { w: STAGE_W, floorY: FLOOR_Y }, fighters, camera: createCamera(fighters, STAGE_W), thr: null, match: match ? createMatch({ rounds: match === true ? 3 : match }) : null };
+  return { tick: 0, rng: createRng(seed), stage: { w: STAGE_W, floorY: FLOOR_Y }, fighters, camera: createCamera(fighters, STAGE_W), thr: null, events: [], match: match ? createMatch({ rounds: match === true ? 3 : match }) : null };
 }
 
 const pushRect = (f) => {
@@ -93,6 +93,7 @@ const threatened = (f, o) => {
 
 function stepSim(w, inputs) {
   w.tick++;
+  w.events.length = 0;                        // this tick's hit/KO events for the renderer (pure data; fx.js consumes them)
   const [a, b] = w.fighters;
   a.threat = threatened(a, b); b.threat = threatened(b, a);
   w.fighters.forEach((f, i) => stepFighter(f, inputs[i]));

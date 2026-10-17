@@ -9,6 +9,7 @@ import { boxesOf } from '../engine/fighter.js';
 import { camPos } from '../engine/camera.js';
 import { createHud, tickHud, drawHud } from './hud.js';
 import { BTN } from '../core/buffer.js';
+import { createFx, tickFx, drawFxBehind, drawFxFront, drawFxOverlay, tintOf } from '../gfx/fx.js';
 import { buildPalette } from '../gfx/palette.js';
 import { bakePose, drawBaked } from '../gfx/baker.js';
 import { poseLibrary } from '../gfx/poses.js';
@@ -104,10 +105,27 @@ function drawShadow(ctx, f, sx, floorSy) {
   ctx.fillRect(Math.round(sx - w / 2), floorSy - 1, w, 3);
   ctx.fillRect(Math.round(sx - w / 2) + 2, floorSy - 2, w - 4, 5);
 }
-function drawFighter(ctx, f, cam) {
+// Hit flash: the sprite as a white silhouette (2 ticks) or red-tinted (4 ticks), via one shared scratch canvas.
+let scratch = null;
+function drawTinted(ctx, b, sx, sy, facing, tint) {
+  const img = facing >= 0 ? b.canvas : b.mirror, ox = facing >= 0 ? b.ox : b.mox;
+  if (!scratch || scratch.width < img.width || scratch.height < img.height) { scratch = document.createElement('canvas'); scratch.width = img.width; scratch.height = img.height; }
+  const c = scratch.getContext('2d');
+  c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, scratch.width, scratch.height); c.drawImage(img, 0, 0);
+  c.globalCompositeOperation = 'source-atop'; c.fillStyle = tint === 'white' ? '#ffffff' : 'rgba(255,40,40,0.45)'; c.fillRect(0, 0, img.width, img.height);
+  ctx.drawImage(scratch, 0, 0, img.width, img.height, Math.round(sx - ox), Math.round(sy - b.oy), img.width, img.height);
+}
+function drawFighter(ctx, f, cam, tint = null) {
   const sx = f.x - cam.x, floorSy = FLOOR_Y + cam.lift;
   drawShadow(ctx, f, sx, floorSy);
-  drawBaked(ctx, baked(f.id, poseOf(f)), sx, floorSy - Math.round(f.y), f.facing);
+  const b = baked(f.id, poseOf(f)), sy = floorSy - Math.round(f.y);
+  if (tint) drawTinted(ctx, b, sx, sy, f.facing, tint); else drawBaked(ctx, b, sx, sy, f.facing);
+}
+function drawGhostAt(ctx, g, alpha, cam) {
+  const a = spriteSet(g.id).anims[g.anim];
+  ctx.globalAlpha = alpha;
+  drawBaked(ctx, baked(g.id, a.frames[frameAt(a, g.at)].pose), g.x - cam.x, FLOOR_Y + cam.lift - Math.round(g.y), g.facing);
+  ctx.globalAlpha = 1;
 }
 function drawBoxes(ctx, world, cam) {
   const rect = (b, color) => {
@@ -172,6 +190,8 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
   const newWorld = () => createWorld({ p1, p2, seed: 1, match: sandbox ? false : rounds });
   let world = newWorld();
   const hud = createHud();
+  const fx = createFx();
+  const stepW = (inputs) => { step(world, inputs); tickFx(fx, world); };   // every sim tick feeds the FX layer
   const input = createInput();
   let showBoxes = params.get('boxes') === '1', showPanel = params.get('panel') === '1';
 
@@ -192,16 +212,22 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
   const tickFn = () => {
     if (frozen) return;
     input.poll();
-    step(world, [input.read(0, { solo: dummy }), dummy ? NEUTRAL : input.read(1)]);
+    stepW([input.read(0, { solo: dummy }), dummy ? NEUTRAL : input.read(1)]);
     tickHud(hud, world);
   };
   const render = () => {
     ctx.imageSmoothingEnabled = false;
     const cam = camPos(world.camera);
+    ctx.save();
+    ctx.translate(fx.shake.x, fx.shake.y);
     drawStage(ctx, cam);
     // the fighter that acted last draws in front: for now P1 behind P2 unless P1 is airborne
     const order = world.fighters[0].y > 0 || world.fighters[0].state !== 'idle' ? [1, 0] : [0, 1];
-    for (const i of order) drawFighter(ctx, world.fighters[i], cam);
+    drawFxBehind(ctx, fx, cam, (c, g, a) => drawGhostAt(c, g, a, cam));
+    for (const i of order) drawFighter(ctx, world.fighters[i], cam, tintOf(fx, i));
+    drawFxFront(ctx, fx, cam);
+    ctx.restore();
+    drawFxOverlay(ctx, fx);
     drawHud(ctx, hud, world);
     if (showBoxes) drawBoxes(ctx, world, cam);
     if (showPanel) drawPanel(ctx, world, loop.stats, input);
@@ -209,22 +235,30 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
   const loop = createLoop({ step: tickFn, render });
   if (params.get('shot') === 'loco') {   // QA still: SURGE jumps forward over a crouching BRICK, then the sim freezes
     const N = NEUTRAL, dn = { ...N, down: true };
-    for (let i = 0; i < 20; i++) step(world, [{ ...N, right: true }, dn]);
-    for (let i = 0; i < 3; i++) step(world, [{ ...N, right: true, up: true }, dn]);
-    for (let i = 0; i < 14; i++) step(world, [{ ...N, right: true }, dn]);
+    for (let i = 0; i < 20; i++) stepW([{ ...N, right: true }, dn]);
+    for (let i = 0; i < 3; i++) stepW([{ ...N, right: true, up: true }, dn]);
+    for (let i = 0; i < 14; i++) stepW([{ ...N, right: true }, dn]);
     frozen = true;
   }
   if (params.get('shot') === 'hit') {    // QA still: SURGE's HP connects on BRICK (hitbox on its first active tick, hitstop frozen)
     world.fighters[0].x = 268; world.fighters[1].x = 316;
-    for (let i = 0; i < 40 && world.fighters[1].state !== 'hit'; i++) { step(world, [i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+    for (let i = 0; i < 40 && world.fighters[1].state !== 'hit'; i++) { stepW([i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
     for (let i = 0; i < 40; i++) tickHud(hud, world);
     frozen = true;
   }
   if (params.get('shot') === 'throw') {  // QA still: SURGE has BRICK lifted mid-throw; the sim freezes with the throw hold on screen
     world.fighters[0].x = 268; world.fighters[1].x = 312;
     const both = { ...NEUTRAL, buttons: BTN.LP | BTN.LK };
-    for (let i = 0; i < 40 && !(world.thr && world.thr.t >= 8); i++) { step(world, [i === 0 ? both : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+    for (let i = 0; i < 40 && !(world.thr && world.thr.t >= 8); i++) { stepW([i === 0 ? both : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
     for (let i = 0; i < 40; i++) tickHud(hud, world);
+    frozen = true;
+  }
+  if (params.get('shot') === 'fxhit' || params.get('shot') === 'fxblock') {   // QA stills: a heavy hit / a block on its 3rd FX tick
+    const blocking = params.get('shot') === 'fxblock';
+    world.fighters[0].x = 268; world.fighters[1].x = 312;
+    const want = blocking ? 'blockstun' : 'hit';
+    for (let i = 0; i < 60 && world.fighters[1].state !== want; i++) { stepW([i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, blocking ? { ...NEUTRAL, right: true } : NEUTRAL]); tickHud(hud, world); }
+    for (let i = 0; i < 2; i++) { stepW([NEUTRAL, blocking ? { ...NEUTRAL, right: true } : NEUTRAL]); tickHud(hud, world); }
     frozen = true;
   }
   if (params.get('shot') === 'combo') {  // QA still: SURGE chains LP > 2LP > HP on BRICK, frozen on the third hit with the combo counter up
@@ -236,12 +270,12 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
       let in1 = { ...NEUTRAL, ...(i ? (seq[i].down ? { down: true } : {}) : {}) };
       if (t === 0) in1 = { ...NEUTRAL, ...seq[0] };
       else if (!pend && i < 2 && a.contact && a.stop === 0) { i++; pend = true; in1 = { ...NEUTRAL, ...seq[i] }; } else pend = false;
-      step(world, [in1, NEUTRAL]); tickHud(hud, world);
+      stepW([in1, NEUTRAL]); tickHud(hud, world);
     }
     frozen = true;
   }
   // QA stills of the HUD: shot=hud (FIGHT! in round 2, P1 up a round), shot=ko (K.O. slow-mo), shot=over (result screen)
-  const toFight = () => { for (let i = 0; i < 400 && world.match.phase !== 'fight'; i++) { step(world, [NEUTRAL, NEUTRAL]); tickHud(hud, world); } };
+  const toFight = () => { for (let i = 0; i < 400 && world.match.phase !== 'fight'; i++) { stepW([NEUTRAL, NEUTRAL]); tickHud(hud, world); } };
   if (['hud', 'ko', 'over'].includes(params.get('shot'))) {
     toFight();
     if (params.get('shot') === 'hud') {
@@ -253,9 +287,9 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     } else {
       world.fighters[0].x = 268; world.fighters[1].x = 308; world.fighters[1].hp = 4;
       if (params.get('shot') === 'over') world.match.wins = [1, 0];   // P1 takes the 2nd round -> match over
-      for (let i = 0; i < 80 && world.match.phase !== 'ko'; i++) { step(world, [i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
-      if (params.get('shot') === 'ko') for (let i = 0; i < 40; i++) { step(world, [NEUTRAL, NEUTRAL]); tickHud(hud, world); }
-      else { for (let i = 0; i < 400 && world.match.phase !== 'over'; i++) { step(world, [NEUTRAL, NEUTRAL]); tickHud(hud, world); } world.match.t = 20; }
+      for (let i = 0; i < 80 && world.match.phase !== 'ko'; i++) { stepW([i === 0 ? { ...NEUTRAL, buttons: BTN.HP } : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+      if (params.get('shot') === 'ko') for (let i = 0; i < 40; i++) { stepW([NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+      else { for (let i = 0; i < 400 && world.match.phase !== 'over'; i++) { stepW([NEUTRAL, NEUTRAL]); tickHud(hud, world); } world.match.t = 20; }
     }
     frozen = true;
   }
@@ -272,7 +306,7 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
       const f = world.fighters[p];
       f.hp = 0; f.ko = true; f.state = 'launched'; f.st = 0; f.kd = 'hard'; f.vx = -f.facing * 2.4; f.vy = 4.5; f.y = Math.max(f.y, 1);
     },
-    stepN(n, a = NEUTRAL, b = NEUTRAL) { for (let i = 0; i < n; i++) step(world, [a, b]); render(); },
+    stepN(n, a = NEUTRAL, b = NEUTRAL) { for (let i = 0; i < n; i++) stepW([a, b]); render(); },
   };
   fit();
   render();
