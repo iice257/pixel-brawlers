@@ -101,3 +101,18 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Viewer: `?view=portrait&fighter=surge|brick` (1x/2x/4x, `grid=1`, `hud=1`, `both=1`) beside the same-height reference crop; `?view=keyart` composes both on a 160x98 grid at 2x with a 4-step dithered additive glow disc each (cyan SURGE, gold BRICK).
 - Key art: SURGE is flipped back to face left as in the reference. The reference has SURGE's big near shoulder in FRONT of the blond's tank, so SURGE's body (below the neck) is redrawn over BRICK; heads keep SURGE behind BRICK.
 - Phase 1 gate fixes: surge intro_0 is now a guard-up neck crack (arms-crossed moved to intro_5), win_a_2 back arm raised clear of the head, spiky tufts on SURGE's hair.
+
+## 2.1 Input layer
+
+- Pure part in `src/core/buffer.js` (SOCD, numpad dir, facing flip, 90-tick ring, 5-tick press buffer, simultaneous window, double-tap); DOM part in `src/core/input.js`. Buffer state is plain data so the world stays serialisable.
+- "Within 3 ticks" is implemented as press ticks at most 3 apart (inclusive). Double tap: two press edges at most 12 ticks apart.
+- Gamepad conflict in section 1: RB was listed both as block and as the LP+LK throw macro. Chosen: LB (4) = block, RB (5) = LP+LK. Start (9) = pause. Solo mode lets P1 read both keyboard layouts.
+- Test command is `npm test` (= `node --test tests/*.test.mjs`); a bare directory argument (`node --test tests/`) does not work on Node 24.
+
+## 2.2 Moves schema and frame data
+
+- Data: `src/data/moves-template.js` (TEMPLATE + FIGHTER_MOVES), helpers in `src/engine/moves.js`, table at `/framedata.html`. Fighter stats live in `src/data/stats.js` (fighter art files are generated and would be overwritten).
+- Block stun for HK 14, 2HP 12, 2HK 12 is derived from the doc's block advantage (-7, -11, -12) because the table gives no bs for them. jHK bs is not in the spec: set to 14 (above jHP's 12, equal to HK).
+- Air normals: `recovery: 0` with `landLag: 3` (whiff landing lag), so S/A match the anim tables. Air pushback uses the single table value for both hit and block.
+- Throw: throwRange 42; the anim hitbox in `anims.js` is the arm band used by the viewer reach check, so the test only compares its far edge with the range.
+- Derived advantages for modified fighters (not in the doc): SURGE HP +5/-3, BRICK HP +3/-5, BRICK 2HP block -12 (doc normal 2HP -11).

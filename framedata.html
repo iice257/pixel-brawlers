@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel Brawlers: frame data</title>
+  <style>
+    :root { --bg:#0a0a12; --panel:#10132a; --edge:#20233b; --ink:#e9ebff; --muted:#8a90b8; --accent:#ffcf33; --cyan:#35e0ff; --pos:#6ee7a0; --neg:#ff7a6b; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(1000px 500px at 50% -10%, #1a1840 0%, var(--bg) 60%); color: var(--ink); font: 13px/1.5 ui-monospace, Consolas, monospace; }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 48px; }
+    h1 { margin: 0 0 4px; font-size: 18px; color: var(--accent); letter-spacing: .04em; }
+    .sub { color: var(--muted); margin: 0 0 18px; }
+    .sub a { color: var(--ink); }
+    nav { display: flex; gap: 8px; margin-bottom: 8px; }
+    nav button { background: #151933; color: var(--muted); border: 1px solid var(--edge); border-radius: 4px; padding: 6px 14px; font: inherit; text-transform: uppercase; cursor: pointer; }
+    nav button:hover { color: var(--ink); }
+    nav button.on { color: #12101e; background: var(--accent); border-color: var(--accent); }
+    #note { color: var(--muted); margin: 0 0 12px; font-size: 12px; }
+    .wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--edge); border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; min-width: 980px; }
+    th, td { padding: 8px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--edge); }
+    th { color: var(--muted); font-weight: normal; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; background: #0e1126; position: sticky; top: 0; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #151933; }
+    .num { font-variant-numeric: tabular-nums; }
+    .id { color: var(--accent); font-weight: bold; }
+    .in, .dim { color: var(--muted); }
+    .adv { font-weight: bold; }
+    .adv.pos { color: var(--pos); } .adv.neg { color: var(--neg); } .adv.zero { color: var(--ink); }
+    tr.mod td:not(.adv) { background: rgba(53, 224, 255, .07); }
+    tr.mod .id::after { content: ' *'; color: var(--cyan); }
+    .lv { padding: 1px 7px; border-radius: 3px; font-size: 11px; background: #1b1f3d; }
+    .lv-H { color: #ffd84a; } .lv-M { color: #8fb8ff; } .lv-L { color: #ff9a64; } .lv-O { color: #ff7a6b; } .lv-T { color: #b8f6ff; }
+    .legend { margin-top: 14px; color: var(--muted); font-size: 12px; max-width: 900px; }
+    .legend b { color: var(--ink); font-weight: normal; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>FRAME DATA</h1>
+    <p class="sub">Rendered from <code>src/data/moves-template.js</code> through <code>engine/moves.js</code>; <code>tests/frames.test.mjs</code> asserts it equals GAME_DESIGN 3.1. <a href="./">Back to game</a></p>
+    <nav id="nav"></nav>
+    <p id="note"></p>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Move</th><th>Input</th><th>S/A/R</th><th>Total</th><th>Dmg</th><th>Level</th><th>Stun hit/block</th><th>Adv hit</th><th>Adv block</th><th>PB hit/block</th><th>Box x,y,w,h</th><th>Hitstop</th><th>Cancels</th></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+    </div>
+    <p class="legend"><b>S/A/R</b> startup / active / recovery ticks (60 per second). <b>Adv</b> = stun - ((A - 1) + R), contact on the first active tick. Air normals have no recovery; a whiffed one lands with 3 ticks of lag. <b>Box</b> is facing right from the feet, y up. Blocked hits lose 2 hitstop ticks.</p>
+  </main>
+  <script type="module" src="src/ui/framedata.js"></script>
+</body>
+</html>
