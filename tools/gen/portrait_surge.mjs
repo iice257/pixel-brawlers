@@ -108,5 +108,5 @@ export function surgePortrait() {
   outlineSilhouette(g);
   return mirror(g);
 }
-export const surgeHudCrop = [30, 20, 32, 32];
+export const surgeHudCrop = [31, 21, 32, 32];
 if (process.argv[1]?.endsWith('portrait_surge.mjs')) console.log(out(surgePortrait()).join('\n'));

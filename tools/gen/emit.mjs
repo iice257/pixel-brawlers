@@ -10,6 +10,7 @@ import { SURGE_BODY, SURGE_PIVOTS } from './surge_body.mjs';
 import { BRICK_BODY, BRICK_PIVOTS } from './brick_body.mjs';
 import { squash } from './fallen.mjs';
 import { surgePortrait, surgeHudCrop } from './portrait_surge.mjs';
+import { brickPortrait, brickHudCrop } from './portrait_brick.mjs';
 import { surgeHeadHit, surgeHeadKo, brickHeadHit, brickHeadKo } from './heads_react.mjs';
 
 const OUT = fileURLToPath(new URL('../../src/data/fighters/', import.meta.url));
@@ -42,6 +43,7 @@ const defs = {
     },
     parts: { head_neutral: brickHead(), head_hit: brickHeadHit(), head_ko: brickHeadKo(), ...Object.fromEntries(Object.entries(BRICK_BODY).map(([k, fn]) => [k, fn()])) },
     pivots: { head_neutral: { neck: [16, 32] }, head_hit: { neck: [16, 32] }, head_ko: { neck: [16, 32] }, ...BRICK_PIVOTS },
+    portrait: () => ({ rows: brickPortrait(), hudCrop: brickHudCrop }),
   },
 };
 

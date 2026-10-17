@@ -534,7 +534,7 @@ export const pivots = {'head_neutral': {'neck': [16, 32]}, 'head_hit': {'neck': 
 // 96x96 master portrait (docs/ART_BIBLE.md section 7): hand-outlined (O), black background = transparent.
 // hudCrop = [x, y, w, h] of the 32x32 face crop used by the HUD.
 export const portrait = {
-  hudCrop: [30, 20, 32, 32],
+  hudCrop: [31, 21, 32, 32],
   rows: [
     '................................................................................................',
     '....................................bc..........................................................',
