@@ -64,7 +64,7 @@ export function reactPoses({ merge, guard, crouchHold, fighterId }) {
   const stance = { legF: { h: 30, k: 0 }, legB: { h: -30, k: 0 } };
   L.win_a_0 = merge(guard, { torso: { v: 'stand', r: 0 }, armF: fist(30, 60), armB: fist(-30, 60), ...stance });
   L.win_a_1 = merge(guard, { torso: { v: 'stand', r: 0 }, armF: fist(75, 90), armB: fist(-75, -90), ...stance });
-  L.win_a_2 = merge(guard, { torso: { v: 'stand', r: -15 }, head: { r: -15 }, armF: fist(90, 90), armB: fist(-90, -90), ...stance });
+  L.win_a_2 = merge(guard, { torso: { v: 'stand', r: -15 }, head: { r: -15 }, armF: fist(90, 90), armB: fist(-120, -30), ...stance });
   L.win_b_0 = merge(guard, { hips: { r: 15 }, torso: { v: 'lean', r: 15 }, armF: fist(30, 90), armB: fist(0, 60), legF: { h: 45, k: 45 }, legB: { h: -15, k: 30 } });
   L.win_b_1 = merge(guard, { torso: { v: 'stand', r: -15 }, head: { r: -15 }, armF: fist(150, 15), armB: fist(-15, 75), ...stance });
   L.win_b_2 = merge(guard, { torso: { v: 'stand', r: -15 }, head: { r: -15 }, armF: fist(165, 0), armB: fist(-15, 75), ...stance });
@@ -85,12 +85,12 @@ export function reactPoses({ merge, guard, crouchHold, fighterId }) {
     L.intro_5 = merge(guard, {});
   } else {
     const calm = { legF: { h: 15, k: 0 }, legB: { h: -15, k: 0 } };
-    L.intro_0 = merge(guard, { torso: { v: 'stand', r: 0 }, armF: fist(45, 90), armB: fist(30, 105), head: { r: 0 }, ...calm });                      // arms crossed, still
+    L.intro_0 = merge(guard, { torso: { v: 'lean', r: 0 }, armF: fist(105, 75), armB: fist(30, 60), head: { r: 15 }, ...calm });                       // guard up, cracks the neck
     L.intro_1 = merge(guard, { torso: { v: 'stand', r: 0 }, armF: fist(45, 90), armB: fist(30, 105), head: { r: 15 }, ...calm });                     // cracks neck left
     L.intro_2 = merge(guard, { torso: { v: 'stand', r: 0 }, armF: fist(120, 60), armB: fist(30, 60), head: { r: -15 }, ...calm });                    // hand to the neck
     L.intro_3 = merge(guard, { torso: { v: 'stand', r: -15 }, armF: fist(-15, 30), armB: fist(-30, 45), head: { r: -15 }, ...calm });                 // shoulders roll back
     L.intro_4 = merge(guard, { torso: { v: 'lean', r: 15 }, armF: fist(45, 105), armB: fist(30, 60), legF: { h: 45, k: 45 }, legB: { h: -30, k: 30 } });
-    L.intro_5 = merge(guard, {});
+    L.intro_5 = merge(guard, { torso: { v: 'stand', r: 0 }, armF: fist(45, 90), armB: fist(30, 105), head: { r: 0 }, ...calm });                      // arms crossed, still
   }
   return L;
 }

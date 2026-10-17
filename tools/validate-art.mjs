@@ -24,6 +24,14 @@ for (const file of files) {
       }
     }
   }
+  if (mod.portrait) {
+    const { rows, hudCrop } = mod.portrait;
+    const errs = validateGrid(`${id}.portrait`, rows);
+    const [w, h] = gridSize(rows);
+    if (w !== 96 || h !== 96) errs.push(`${id}.portrait: expected 96x96, got ${w}x${h}`);
+    if (!Array.isArray(hudCrop) || hudCrop[2] !== 32 || hudCrop[3] !== 32 || hudCrop[0] < 0 || hudCrop[1] < 0 || hudCrop[0] + 32 > 96 || hudCrop[1] + 32 > 96) errs.push(`${id}.portrait: hudCrop must be a 32x32 rect inside the grid`);
+    if (errs.length) { failed = true; errs.forEach((e) => console.error(`ERR ${e}`)); } else console.log(`OK  ${id}.portrait 96x96 hudCrop ${hudCrop}`);
+  }
 }
 if (!files.length) { console.error('ERR no fighter files found'); failed = true; }
 process.exit(failed ? 1 : 0);

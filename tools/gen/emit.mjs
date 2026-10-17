@@ -9,6 +9,7 @@ import { brickHead } from './brick_head.mjs';
 import { SURGE_BODY, SURGE_PIVOTS } from './surge_body.mjs';
 import { BRICK_BODY, BRICK_PIVOTS } from './brick_body.mjs';
 import { squash } from './fallen.mjs';
+import { surgePortrait, surgeHudCrop } from './portrait_surge.mjs';
 import { surgeHeadHit, surgeHeadKo, brickHeadHit, brickHeadKo } from './heads_react.mjs';
 
 const OUT = fileURLToPath(new URL('../../src/data/fighters/', import.meta.url));
@@ -27,6 +28,7 @@ const defs = {
     },
     parts: { head_neutral: surgeHead(), head_hit: surgeHeadHit(), head_ko: surgeHeadKo(), ...Object.fromEntries(Object.entries(SURGE_BODY).map(([k, fn]) => [k, fn()])) },
     pivots: { head_neutral: { neck: [16, 32] }, head_hit: { neck: [16, 32] }, head_ko: { neck: [16, 32] }, ...SURGE_PIVOTS },
+    portrait: () => ({ rows: surgePortrait(), hudCrop: surgeHudCrop }),
   },
   brick: {
     note: 'BRICK "THE HEADLINER": blond tank-top homage. Authored facing RIGHT (three-quarter front).',
@@ -48,6 +50,17 @@ const fmtPalette = (p) => '{\n' + Object.entries(p).map(([k, v]) => `  ${k}: ${l
 const fmtParts = (parts) => Object.entries(parts).map(([name, g]) =>
   `  ${name}: [\n${rows(g).map((r) => `    '${r}',`).join('\n')}\n  ],`).join('\n');
 
+const fmtPortrait = (p) => `
+// 96x96 master portrait (docs/ART_BIBLE.md section 7): hand-outlined (O), black background = transparent.
+// hudCrop = [x, y, w, h] of the 32x32 face crop used by the HUD.
+export const portrait = {
+  hudCrop: ${lit(p.hudCrop)},
+  rows: [
+${rows(p.rows).map((r) => `    '${r}',`).join('\n')}
+  ],
+};
+`;
+
 // Fallen torso + hips (see fallen.mjs): added to every fighter from its own standing parts.
 for (const d of Object.values(defs)) {
   const t = squash(d.parts.torso_stand.map((r) => (Array.isArray(r) ? r.join('') : r)), d.pivots.torso_stand);
@@ -67,7 +80,7 @@ ${fmtParts(d.parts)}
 
 // Joint pivots per part: name -> [x,y] inside the grid (where it hangs off its parent / children attach).
 export const pivots = ${lit(d.pivots)};
-`;
+${d.portrait ? fmtPortrait(d.portrait()) : ''}`;
   writeFileSync(OUT + id + '.js', src);
   console.log('wrote', id);
 }

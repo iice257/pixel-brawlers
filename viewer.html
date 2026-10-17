@@ -104,6 +104,15 @@
       <div id="coverage"></div>
     </section>
     <section>
+      <h2>Portrait (?view=portrait &amp;fighter=surge|brick &amp;grid=1 &amp;hud=1)</h2>
+      <div class="row" style="margin-bottom:8px"><a style="color:var(--gold)" href="?view=portrait&fighter=surge">surge</a><a style="color:var(--gold)" href="?view=portrait&fighter=brick">brick</a><a style="color:var(--gold)" href="?view=keyart">key art</a></div>
+      <div id="portrait"></div>
+    </section>
+    <section>
+      <h2>Key art test (?view=keyart)</h2>
+      <div id="keyart"></div>
+    </section>
+    <section>
       <h2>Contact sheet (?view=contact &amp;fighter=surge &amp;scale=2 &amp;only=regex &amp;cols=14)</h2>
       <div class="row" style="margin-bottom:8px"><button id="sheetExport">export PNG</button><span class="cap">saves the sheets below as one PNG (also written to #sheetData as a data URL)</span></div>
       <div id="contact"></div>
@@ -123,5 +132,6 @@
     </section>
   </main>
   <script type="module" src="src/viewer/viewer.js"></script>
+  <script type="module" src="src/viewer/portrait.js"></script>
 </body>
 </html>
