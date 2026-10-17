@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel Brawlers: input test</title>
+  <style>
+    :root { --bg:#0a0a12; --panel:#10132a; --edge:#20233b; --ink:#e9ebff; --muted:#8a90b8; --accent:#ffcf33; --cyan:#35e0ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(1000px 500px at 50% -10%, #1a1840 0%, var(--bg) 60%); color: var(--ink); font: 13px/1.5 ui-monospace, Consolas, monospace; }
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 48px; }
+    h1 { margin: 0 0 4px; font-size: 18px; color: var(--accent); letter-spacing: .04em; }
+    .sub { color: var(--muted); margin: 0 0 22px; }
+    .sub a { color: var(--ink); }
+    #fps { float: right; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+    section { background: var(--panel); border: 1px solid var(--edge); border-radius: 6px; padding: 16px 18px 14px; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    h2 { margin: 0; font-size: 15px; }
+    .pad { color: var(--muted); font-size: 11px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pad.ok { color: var(--cyan); }
+    button.face { background: #1a1e3a; color: var(--ink); border: 1px solid var(--edge); border-radius: 4px; padding: 5px 10px; font: inherit; font-size: 11px; cursor: pointer; }
+    button.face:hover { border-color: var(--accent); }
+    .row { display: flex; gap: 22px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+    .dir { display: grid; grid-template-columns: repeat(3, 34px); gap: 4px; }
+    .dir i { font-style: normal; height: 34px; display: grid; place-items: center; background: #151933; border: 1px solid var(--edge); border-radius: 4px; color: #3a4068; }
+    .dir i.on { background: var(--accent); color: #12101e; border-color: var(--accent); font-weight: bold; }
+    .btns { display: flex; gap: 6px; }
+    .btns b { width: 42px; height: 42px; display: grid; place-items: center; background: #151933; border: 1px solid var(--edge); border-radius: 50%; color: #3a4068; font-size: 11px; }
+    .btns b.on { background: var(--cyan); color: #06222a; border-color: var(--cyan); }
+    .flags { display: flex; gap: 6px; }
+    .flags span { text-align: center; font-size: 10px; line-height: 1.25; padding: 6px 8px; min-width: 66px; background: #151933; border: 1px solid var(--edge); border-radius: 4px; color: #4a5080; }
+    .flags span small { font-size: 9px; opacity: .8; }
+    .flags span.on { border-color: #ff6b4a; color: #ffb09c; background: #2a1620; }
+    canvas { width: 100%; height: auto; image-rendering: pixelated; background: #0c0e1e; border: 1px solid var(--edge); border-radius: 4px; display: block; }
+    .map { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+    .note { margin-top: 18px; color: var(--muted); font-size: 12px; }
+    .note b { color: var(--ink); font-weight: normal; }
+  </style>
+</head>
+<body>
+  <main>
+    <span id="fps"></span>
+    <h1>INPUT TEST</h1>
+    <p class="sub">Sampled once per 60 Hz tick: SOCD-cleaned, facing-relative numpad direction, 90 tick history. <a href="./">Back to game</a></p>
+    <div class="grid"><section id="p0"></section><section id="p1"></section></div>
+    <p class="note"><b>Check:</b> hold A+D (neutral 5) · W+S (8) · flip facing and watch 4/6 swap · tap → → within 12 ticks lights DASH · J+U within 3 ticks lights THROW · click away and every key releases (blur clear). Gamepads: D-pad / stick, X Y A B = LP HP LK HK, LB = block, RB = LP+LK.</p>
+  </main>
+  <script type="module" src="src/ui/input_test.js"></script>
+</body>
+</html>
