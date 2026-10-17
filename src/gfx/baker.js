@@ -76,10 +76,39 @@ function bakeOp(fighter, op) {
   return out;
 }
 
+const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+
+// Procedural smear: a crescent (tapering toward its start) around a joint, three tones across its width
+// (tone 4 inside, tone 5 mid, white on the leading edge). Drawn only on empty pixels so the limb stays on top.
+// fx = { type:'arc', c: joint name, r: radius, a0, a1 } with limb angles (0 = down, positive = forward), degrees.
+function drawSmears(fighter, mctx, fxList, joints) {
+  const img = mctx.getImageData(0, 0, CW, CH), d = img.data;
+  const pal = fighter.palette, tones = [hexRgb(pal['4']), hexRgb(pal['5']), hexRgb(pal.w)];
+  for (const fx of fxList) {
+    if (fx.type !== 'arc') continue;
+    const [jx, jy] = joints[fx.c];
+    const cx = Math.round(OX + jx - 0.5) + 0.5, cy = Math.round(OY + jy - 0.5) + 0.5;
+    const w = fx.w ?? 3;
+    for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
+      const i = (y * CW + x) * 4;
+      if (d[i + 3]) continue;
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+      const ang = (Math.atan2(dx, dy) * 180) / Math.PI;
+      const t = (ang - fx.a0) / (fx.a1 - fx.a0);
+      if (t < 0 || t > 1) continue;
+      const hw = 0.6 + w * t, off = Math.hypot(dx, dy) - fx.r;
+      if (Math.abs(off) > hw) continue;
+      const tone = off > hw / 3 ? tones[2] : off > -hw / 3 ? tones[1] : tones[0];
+      d[i] = tone[0]; d[i + 1] = tone[1]; d[i + 2] = tone[2]; d[i + 3] = 255;
+    }
+  }
+  mctx.putImageData(img, 0, 0);
+}
+
 const cache = new Map();
 
-export function bakePose(fighter, pose) {
-  const key = poseKey(fighter.id, pose);
+export function bakePose(fighter, pose, only = null) {   // only: optional list of rig groups to draw (floor still uses every foot)
+  const key = poseKey(fighter.id, pose) + (only ? '|' + only.join() : '');
   if (cache.has(key)) return cache.get(key);
   const { ops, joints } = resolvePose(fighter, pose);
   const main = document.createElement('canvas');
@@ -94,7 +123,7 @@ export function bakePose(fighter, pose) {
     const img = bakeOp(fighter, op);
     tctx.clearRect(0, 0, CW, CH);
     tctx.putImageData(img, 0, 0);
-    mctx.drawImage(tmp, 0, 0);
+    if (!only || only.includes(op.group)) mctx.drawImage(tmp, 0, 0);
     if (op.part.startsWith('foot_')) {
       // lowest opaque pixel of this foot (not its outline)
       const dd = img.data;
@@ -105,6 +134,7 @@ export function bakePose(fighter, pose) {
       }
     }
   }
+  if (pose.fx?.length) drawSmears(fighter, mctx, pose.fx, joints);
   // bounding box of everything drawn
   const data = mctx.getImageData(0, 0, CW, CH);
   let x0 = CW, y0 = CH, x1 = -1, y1 = -1;

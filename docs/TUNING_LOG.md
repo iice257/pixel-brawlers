@@ -64,3 +64,14 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Timing in src/data/anims.js (walk_f 5 ticks, walk_b 6, crouch 3 per pose, dash_f 5/5/4, dash_b 5/7/4, jump_f/b 9 ticks per pose then hold).
 - Rotation: no pre-rotated variant parts yet; 15-45 degree limbs in walk/dash look acceptable at 2x (some stair-stepping on thin parts). Revisit if attacks show jaggies.
 - tools/posecheck.mjs: headless silhouette inspector (height, x extent, reach in a hitbox band).
+
+## 1.7 Attack poses, reach checks and smears
+
+- 45 attack poses per fighter (LP/HP/LK/HK, 2LP/2LK/2HP/2HK, jLP/jHP/jLK/jHK, throw) in `src/gfx/poses_attacks.js`; anims, S/A/R and hitboxes in `src/data/anims.js`. The extended pose is held for the active ticks.
+- Reach check: tip of the attacking limb group only (`limb` in anim data) vs hitbox far edge, within 4px. Viewer coverage panel shows a PASS/FAIL per attack and per fighter: ALL GREEN. Headless twin: `node tools/reachcheck.mjs`.
+- Pre-rotated variant parts (arm_punch / leg_kick): none needed. Everything is reached by rig angles.
+- Brick-only fixes (`BRICK_FIX` in poses.js): LK_1 leg h75 (shorter legs vs his 46 box), jLP_1 arm 75/60 (longer arms).
+- Root lunges to reach: HK_2 +6, 2LK_1 +6, 2HK_2 +16, 2HP_2 +6. 2LP needed a lean-back torso.
+- Throw: GAME_DESIGN range 34 is not reachable with natural grab arms (arm length gives ~59). Throw hitbox far edge set to 59 and flagged for the orchestrator.
+- Smears (`pose.fx` arcs) on HP_2, HK_2, 2HP_2, 2HK_2. 2HK_2's arc is mostly clipped by the foot tip and reads as a small blob.
+- Contact sheet cells widened (140px) so extended limbs are not clipped. Sheet: `media/qa/phase1-1.7-contact.png`.

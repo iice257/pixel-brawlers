@@ -18,7 +18,7 @@ export function silhouette(fighter, pose) {
       for (const [ox, oy] of [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]]) {
         const lx = x + ox - (op.pivot[0] + 0.5), ly = y + oy - (op.pivot[1] + 0.5);
         const wx = Math.floor(ax + lx * c - ly * s), wy = Math.floor(ay + lx * s + ly * c);
-        cells.set(wx + ',' + wy, op.part);
+        cells.set(wx + ',' + wy, op.group);
       }
     }
     op.feet = op.part.startsWith('foot_');
@@ -36,16 +36,16 @@ export function silhouette(fighter, pose) {
   floor += 1;
   let x0 = 1e9, y0 = 1e9, x1 = -1e9;
   const px = [];
-  for (const k of cells.keys()) {
+  for (const [k, grp] of cells) {
     const [x, y] = k.split(',').map(Number);
     x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y);
-    px.push([x, floor - y]);   // y up from the floor
+    px.push([x, floor - y, grp]);   // y up from the floor
   }
   return { px, height: floor - y0, minX: x0, maxX: x1 };
 }
-export function reachAt(sil, [bx, by, bw, bh]) {
+export function reachAt(sil, [bx, by, bw, bh], groups = null) {
   let m = -1e9;
-  for (const [x, y] of sil.px) if (y >= by && y < by + bh) m = Math.max(m, x + 1);
+  for (const [x, y, g] of sil.px) if (y >= by && y < by + bh && (!groups || groups.includes(g))) m = Math.max(m, x + 1);
   return { tip: m, far: bx + bw, diff: m - (bx + bw) };
 }
 

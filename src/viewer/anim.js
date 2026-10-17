@@ -17,17 +17,17 @@ const LIBS = Object.fromEntries(IDS.map((id) => [id, poseLibrary(id)]));
 const ANIM = Object.fromEntries(IDS.map((id) => [id, animsFor(id)]));
 
 const stripFx = (p) => { const { fx, ...rest } = p; return rest; };
-const tryBake = (id, name, keepFx = true) => {
+const tryBake = (id, name, keepFx = true, only = null) => {
   const pose = LIBS[id][name];
   if (!pose) return null;
-  return bakePose(FIGHTERS[id], keepFx ? pose : stripFx(pose));
+  return bakePose(FIGHTERS[id], keepFx ? pose : stripFx(pose), only);
 };
 
-// Rightmost body pixel (outline included, smear excluded) inside the hitbox's y band, relative to the feet origin.
+// Rightmost pixel of the attacking limb group(s) (outline included, smear excluded) inside the hitbox's y band, relative to the feet origin.
 function reachOf(id, anim) {
   const i = anim.frames.findIndex((f) => f.phase === 'active');
   if (i < 0 || !anim.hitbox) return null;
-  const b = tryBake(id, anim.frames[i].pose, false);
+  const b = tryBake(id, anim.frames[i].pose, false, anim.limb ?? null);
   if (!b) return null;
   const [bx, by, bw, bh] = anim.hitbox;
   const d = b.canvas.getContext('2d').getImageData(0, 0, b.w, b.h).data;
@@ -162,7 +162,7 @@ if (contact) {
   const scale = +(qs.get('scale') || 1);
   const ids = qs.get('fighter') ? [qs.get('fighter')] : IDS;
   const only = qs.get('only');                                  // optional regex on animation names
-  const CW = 112, CH = 118, FL = 110, LAB = 12, COLS = +(qs.get('cols') || 14);
+  const CW = 140, CH = 118, FL = 110, LAB = 12, COLS = +(qs.get('cols') || 14);
   for (const id of ids) {
     const items = [];
     const seen = new Set();
@@ -183,7 +183,7 @@ if (contact) {
       o.strokeStyle = '#2a1d4a'; o.strokeRect(0.5, 0.5, CW - 1, CH + LAB - 1);
       o.beginPath(); o.moveTo(0, LAB + FL + 0.5); o.lineTo(CW, LAB + FL + 0.5); o.stroke();
       const b = tryBake(id, pose);
-      if (b) { const t = document.createElement('canvas'); t.width = CW; t.height = CH + LAB; drawBaked(t.getContext('2d'), b, CW / 2 - 6, LAB + FL, 1); o.drawImage(t, 0, 0); }
+      if (b) { const t = document.createElement('canvas'); t.width = CW; t.height = CH + LAB; drawBaked(t.getContext('2d'), b, CW / 2 - 22, LAB + FL, 1); o.drawImage(t, 0, 0); }
       c.drawImage(off, 0, 0, CW, CH + LAB, cx * scale, cy * scale, CW * scale, (CH + LAB) * scale);
       c.fillStyle = b ? '#b9a8f0' : '#ff6b6b';
       c.fillText(b ? pose : 'MISSING ' + pose, (cx + 3) * scale, (cy + 9) * scale);

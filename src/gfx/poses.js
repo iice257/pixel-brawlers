@@ -120,12 +120,18 @@ function baseLib() {
   jumpDir(-1).forEach((p, i) => { L['jump_b_' + i] = p; });
   dashF.forEach((p, i) => { L['dash_f_' + i] = p; });
   dashB.forEach((p, i) => { L['dash_b_' + i] = p; });
-  Object.assign(L, attackPoses());
+  Object.assign(L, attackPoses({ merge, guard, crouchHold, jumpApex }));
   return L;
 }
 
 // Attack poses live in poses_attacks.js (filled by Task 1.7); kept as a hook so the library stays one namespace.
 import { attackPoses } from './poses_attacks.js';
+
+// Brick's longer arms / shorter legs need a few attack poses pulled in so the tip lands on his hitbox (viewer reach check).
+const BRICK_FIX = {
+  LK_1: { legF: { h: 75 } },
+  jLP_1: { armF: { s: 75, e: 60 } },
+};
 
 const isLoco = (n) => /^(idle|walk|dash)_/.test(n);
 export function poseLibrary(fighterId) {
@@ -141,6 +147,7 @@ export function poseLibrary(fighterId) {
       p.head = { ...p.head, ...loco.head };
       p.armF = { ...p.armF, s: (p.armF?.s ?? 0) + (loco.armF.s ?? 0) };
     }
+    if (fighterId === 'brick' && BRICK_FIX[name]) p = merge(p, BRICK_FIX[name]);
     out[name] = p;
   }
   return out;
