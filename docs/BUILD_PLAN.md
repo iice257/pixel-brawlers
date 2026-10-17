@@ -280,6 +280,7 @@ npx serve -l 5173 .                # then open http://localhost:5173/ and http:/
 ### 8.3 Responsive/fullscreen/DPR scaling, CRT option, reduced-motion, perf profiling and fixes, loading screen
 ### 8.4 Bug-bash: playthrough with every fighter on every stage; fix list in `docs/TUNING_LOG.md`
 ### 8.5 README rewrite: hero GIF/screenshots in `media/`, features, controls, move lists summary, architecture diagram, "how art/sprites work", credits (original IP statement), link to `viewer.html`
+### 8.7 Portrait polish pass (carry-over from Phase 1): SURGE neck/trap/face and near-arm detail, BRICK gritty salmon shading, hot hair highlights, more hair clumps, tank folds; must hold up side by side with the reference at 4x
 ### 8.6 Pages deployment check: confirm `https://iice257.github.io/pixel-brawlers/` serves the latest, relative URLs only, no console errors, cache-bust query for modules, `media/` sizes sane; tag `v1.0`
 - Use `gh api repos/iice257/pixel-brawlers/pages` and a fresh incognito load.
 
