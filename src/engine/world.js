@@ -3,7 +3,7 @@
 import { STAGE_W, FLOOR_Y } from '../config2.js';
 import { createRng } from '../core/rng.js';
 import { createFighter, stepFighter, canTurn, BOXES, boxKind } from './fighter.js';
-import { resolveHits, CORNER_SHARE } from './combat.js';
+import { resolveHits, stepThrow, CORNER_SHARE } from './combat.js';
 import { getMove } from './moves.js';
 import { createCamera, updateCamera } from './camera.js';
 
@@ -16,12 +16,12 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export function createWorld({ p1 = 'surge', p2 = 'brick', seed = 1 } = {}) {
   const mid = STAGE_W / 2;
   const fighters = [createFighter(p1, 0, mid - START_GAP / 2, 1), createFighter(p2, 1, mid + START_GAP / 2, -1)];
-  return { tick: 0, rng: createRng(seed), stage: { w: STAGE_W, floorY: FLOOR_Y }, fighters, camera: createCamera(fighters, STAGE_W) };
+  return { tick: 0, rng: createRng(seed), stage: { w: STAGE_W, floorY: FLOOR_Y }, fighters, camera: createCamera(fighters, STAGE_W), thr: null };
 }
 
 const pushRect = (f) => {
   const pb = BOXES[boxKind(f)].push;
-  if (!pb) return null;                                                    // lying fighters have no pushbox
+  if (!pb || f.state === 'thrown' || f.state === 'throwing') return null;                                                    // lying fighters have no pushbox
   const x0 = f.x + pb[0];
   return { x0, x1: x0 + pb[2], y0: f.y + pb[1], y1: f.y + pb[1] + pb[3] };
 };
@@ -87,6 +87,7 @@ export function step(w, inputs) {
   const [a, b] = w.fighters;
   a.threat = threatened(a, b); b.threat = threatened(b, a);
   w.fighters.forEach((f, i) => stepFighter(f, inputs[i]));
+  stepThrow(w);
   clampStage(w);
   pushBodies(w);
   limitSeparation(w);

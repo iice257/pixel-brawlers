@@ -138,3 +138,18 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Air normals: hitbox active S+1..S+A only; the move ends on landing (3 ticks of landing lag if nothing connected). The spec's "deep hit +2 hitstun" is not implemented yet.
 - Not done on purpose: per-move hurtbox overrides (2HP legs-only shrink), meter, chip (0 for normals anyway).
 - Baker (again): z-order compositing now happens in a pixel buffer instead of through two canvases. Pixel-identical to the previous baker on all 276 poses, about 13 ms per pose (was 23). The fight scene now queues every anim for slice baking, locomotion first.
+
+## 2.5 Throws, knockdown, wakeup, tech
+
+- **Throw input:** LP+LK pressed within `SIMUL_WINDOW` (3 ticks) of each other. A lone LP/LK jab converts to the throw if the other button arrives while the jab is still in its first `SIMUL_WINDOW+1` move ticks (leniency, so a slightly late second button still grabs).
+- **Reach:** throw box is `[0,0,42,80]` tested against the defender's pushbox, so it connects up to 53px centre to centre (gap 53 grabs, 54 whiffs). The doc's 42 is a box width, not a centre distance; flagged.
+- **Whiff:** startup 5, active 2, 24 total recovery (attacker free on tick index 31).
+- **Tech:** defender LP+LK (pressed together, after the grab) within 7 ticks; 8 fails. Both pushed 28px apart (vx 3.5 for 8 ticks), no damage, neutral after 20. Two throws on the same tick tech each other.
+- **No throw hitstop.** The data says 12 hitstop, which would swallow the 7-tick tech window; the grab-hold itself is the pause.
+- **Damage** is applied at tick 8 after the grab (once the tech window closes): `round(100*pwr*def)`, no combo scaling. Hard knockdown.
+- **Timeline:** defender held and locked to the attacker for 14 ticks, then released as a launch (vx 2.0, vy 3.5); attacker free 24 ticks after the grab.
+- **Back throw** (hold back): defender lerps from front to behind over ticks 4..13 and lands behind; sides swap. "Swap sides" reads this way.
+- **Knockdown:** lie 34 hard / 22 soft, getup 22 ticks. Wakeup invulnerable for the first 3 ticks (6 for quick-rise); the entry tick of getup counts.
+- **Quick-rise:** any 2 presses, or direction + 1 press, with age < 3 on the landing tick. Roll back 28px, lie 8.
+- **Lying hurtbox** `{-30,0,60,16}`: only hitboxes whose bottom is below y=8 connect.
+- **Throw box** shows as yellow in the F2 overlay.

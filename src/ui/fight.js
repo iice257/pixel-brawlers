@@ -213,6 +213,13 @@ export function boot(canvas, params = new URLSearchParams(location.search)) {
     for (let i = 0; i < 40; i++) tickHud(hud, world);
     frozen = true;
   }
+  if (params.get('shot') === 'throw') {  // QA still: SURGE has BRICK lifted mid-throw; the sim freezes with the throw hold on screen
+    world.fighters[0].x = 268; world.fighters[1].x = 312;
+    const both = { ...NEUTRAL, buttons: BTN.LP | BTN.LK };
+    for (let i = 0; i < 40 && !(world.thr && world.thr.t >= 8); i++) { step(world, [i === 0 ? both : NEUTRAL, NEUTRAL]); tickHud(hud, world); }
+    for (let i = 0; i < 40; i++) tickHud(hud, world);
+    frozen = true;
+  }
   window.__game = { get world() { return world; }, input, loop, bakeMs, bakeStats };
   window.__debug = {
     boxes(on = !showBoxes) { showBoxes = on; },

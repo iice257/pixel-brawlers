@@ -4,7 +4,7 @@
 import { STATS } from '../data/stats.js';
 import { ANIMS, animTotal } from '../data/anims.js';
 import { getMove, moveTotal } from './moves.js';
-import { BTN, createBuffer, pushInput, doubleTap, dirX, dirY, FWD, BACK, livePresses, take, pressAge } from '../core/buffer.js';
+import { BTN, SIMUL_WINDOW, createBuffer, pushInput, doubleTap, dirX, dirY, FWD, BACK, livePresses, take, takeThrow, pressAge } from '../core/buffer.js';
 
 export const PREJUMP = 3;
 export const JUMP_VY = 8.0;
@@ -16,6 +16,7 @@ export const CROUCH_IN = 6, CROUCH_OUT = 6, LAND_ANIM = 3;
 export const LANDLAG = 3;                    // whiffed air normal landing lag
 export const KB_DECAY = 0.86;                // pushback decays by this per tick on the ground
 export const LIE = { soft: 22, hard: 34 }, GETUP = 22, WAKE_INV = 3;
+export const TECH_TICKS = 20, TECH_PUSH = 3.5;   // thrown-then-teched: both fighters slide apart 28px (8 ticks), neutral after 20
 export const AIR_HIT = { vx: 2.0, vy: 3.0 }; // a jump-in that hits an airborne opponent knocks them down softly
 
 // Local boxes (facing right, feet origin, y up): [x, y, w, h]. GAME_DESIGN 2.2.
@@ -39,7 +40,7 @@ export function createFighter(id, idx, x, facing) {
     jumpDir: 0, landT: 0, outT: 0, inv: null,
     move: null, mt: 0, hitDone: [], contact: null, airUsed: false,   // attack
     stun: 0, stop: 0, kvx: 0, stance: 'stand', react: 'hit_body', crouchHit: false,   // reactions
-    kd: null, lieT: 0, wake: WAKE_INV, qr: false, ko: false, threat: false, wall: 0,
+    kd: null, lieT: 0, wake: WAKE_INV, qr: false, ko: false, threat: false, throwBack: false, pr: 0, thrown: false,
   };
 }
 
@@ -50,6 +51,7 @@ const playAt = (f, name, at) => { f.anim = name; f.at = at; };
 export function boxKind(f) {
   switch (f.state) {
     case 'lying': case 'ko': return 'lying';
+    case 'thrown': case 'throwing': return 'stand';
     case 'air': case 'launched': return 'air';
     case 'attack': { const s = getMove(f.id, f.move).state; return s === 'air' ? 'air' : s === 'crouch' ? 'crouch' : 'stand'; }
     case 'crouch': case 'prejump': return 'crouch';
@@ -98,9 +100,10 @@ function pickPress(f) {
   }
   return best;
 }
-export function startAttack(f, id) {
+export function startAttack(f, id, pr = 0) {
   const m = getMove(f.id, id);
-  f.move = id; f.mt = 1; f.hitDone = m.hits.map(() => false); f.contact = null;
+  f.move = id; f.mt = 1; f.hitDone = m.hits.map(() => false); f.contact = null; f.pr = pr;
+  if (id === 'throw') f.throwBack = dirX(f.buf.dir) < 0;                  // hold back = back throw
   if (m.state === 'air') f.airUsed = true; else f.vx = 0;
   setState(f, 'attack');
   playAt(f, m.anim, 0);
@@ -111,8 +114,9 @@ function tryAttack(f, air) {
   const y = dirY(f.buf.dir);
   const id = (air ? 'j' : y < 0 ? '2' : '') + BTN_NAME[b];
   if (!getMove(f.id, id)) return false;
+  const pr = f.buf.press[BTN_IDX[b]];
   take(f.buf, b);
-  startAttack(f, id);
+  startAttack(f, id, pr);
   return true;
 }
 // Live hit windows of the current move: world-space boxes (for hit detection and the overlay).
@@ -148,12 +152,13 @@ function locomote(f, S) {
 }
 // Everything a fighter may do on an actionable tick: buffered normal first, otherwise move.
 function actionable(f, S) {
+  if (dirY(f.buf.dir) <= 0 && takeThrow(f.buf)) { startAttack(f, 'throw'); return; }
   if (dirY(f.buf.dir) <= 0 && tryAttack(f, false)) return;
   locomote(f, S);
 }
-function backToNeutral(f, S, crouched) {
+export function backToNeutral(f, S, crouched) {
   if (crouched) { setState(f, 'crouch'); f.st = CROUCH_IN; } else setState(f, 'idle');
-  f.vx = 0; f.kvx = 0;
+  f.vx = 0; f.kvx = 0; f.thrown = false;
   actionable(f, S);
   if (f.state === 'dash_f' || f.state === 'dash_b') dashTick(f, S);
 }
@@ -183,7 +188,7 @@ function quickRise(f) {
   return n >= 2 || (n >= 1 && f.buf.dir !== 5);
 }
 function land(f) {
-  f.vx = 0;
+  f.vx = 0; f.thrown = false;
   if (f.ko) { setState(f, 'ko'); return; }
   f.qr = quickRise(f);
   f.lieT = f.qr ? 8 : LIE[f.kd === 'soft' ? 'soft' : 'hard'];
@@ -218,6 +223,13 @@ export function stepFighter(f, raw) {
     case 'attack': {
       const m = getMove(f.id, f.move);
       f.mt++;
+      // LP then LK (or the reverse) a couple of ticks apart: the jab that started becomes the throw (SIMUL_WINDOW leniency)
+      if (f.mt <= SIMUL_WINDOW + 1 && (f.move === 'LP' || f.move === 'LK') && !f.contact) {
+        const other = f.move === 'LP' ? BTN.LK : BTN.LP;
+        if ((livePresses(f.buf) & other) && Math.abs(f.buf.press[BTN_IDX[other]] - f.pr) <= SIMUL_WINDOW) {
+          take(f.buf, other); startAttack(f, 'throw'); break;
+        }
+      }
       if (m.state === 'air') {
         if (integrate(f, S)) {
           f.vx = 0;
@@ -230,6 +242,11 @@ export function stepFighter(f, raw) {
       }
       break;
     }
+    case 'throwing': case 'thrown': break;                // driven by combat.stepThrow
+    case 'tech':
+      f.vx = f.st >= 1 && f.st <= 8 ? f.kvx * TECH_PUSH : 0;
+      if (f.st >= TECH_TICKS) backToNeutral(f, S, false);
+      break;
     case 'landlag':
       if (f.st >= LANDLAG) backToNeutral(f, S, false);
       break;
@@ -242,7 +259,7 @@ export function stepFighter(f, raw) {
       break;
     case 'lying':
       if (f.qr) f.vx = f.st >= 1 && f.st <= 7 ? -f.facing * 4 : 0;   // roll back 28px
-      if (f.st >= f.lieT) { setState(f, 'getup'); f.vx = 0; }
+      if (f.st >= f.lieT) { setState(f, 'getup'); f.vx = 0; f.inv = 'all'; }
       break;
     case 'getup':
       if (f.st < f.wake) f.inv = 'all';
@@ -279,7 +296,8 @@ function pickAnim(f) {
     case 'attack': playAt(f, getMove(f.id, f.move).anim, f.mt - 1); break;
     case 'landlag': playAt(f, 'jump_land', f.st); break;
     case 'hit': playAt(f, f.react, f.st); break;
-    case 'launched': playAt(f, 'hit_air', f.st); break;
+    case 'launched': if (f.thrown) playAt(f, 'thrown', 8 + Math.min(f.st, 7)); else playAt(f, 'hit_air', f.st); break;
+    case 'tech': playAt(f, 'block_stand_hold', f.st); break;
     case 'lying': playAt(f, f.qr ? 'lying' : 'knockdown', f.st); break;
     case 'getup': playAt(f, 'getup', Math.min(f.st, 23)); break;
     case 'ko': playAt(f, 'ko', f.st); break;
@@ -297,7 +315,7 @@ export function boxesOf(f) {
   return {
     push: k.push ? toWorld(f, k.push) : null,
     hurt: k.hurt.map((b) => toWorld(f, b)),
-    hit: activeHits(f).map((a) => a.box),
-    throw: [],
+    hit: activeHits(f).filter((a) => a.hit.level !== 'T').map((a) => a.box),
+    throw: activeHits(f).filter((a) => a.hit.level === 'T').map((a) => a.box),
   };
 }
