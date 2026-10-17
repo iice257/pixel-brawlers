@@ -15,6 +15,7 @@ export const GLYPHS = {
   m: 'trim m (dark)', n: 'trim n', o: 'trim o', p: 'trim p (light)',
   w: 'eye white', y: 'iris', x: 'mouth / deep shadow',
   r: 'prop dark', s: 'prop light', Q: 'fx glow',
+  z: 'hair accent (brightest, sparing 1px)',
 };
 
 export const GLYPH_SET = new Set(Object.keys(GLYPHS));
@@ -27,9 +28,9 @@ const RAMPS = [
   ['trim', 'mnop'],
 ];
 
-// def = { skin:[5], hair:[4], clothA:[4], clothB:[4], trim:[4], iris, prop:[dark,light], fx }
+// def = { skin:[5], hairHi (accent z), hair:[4], clothA:[4], clothB:[4], trim:[4], iris, prop:[dark,light], fx }
 export function buildPalette(def) {
-  const pal = { O: OUTLINE, w: WHITE, x: MOUTH, y: def.iris, Q: def.fx, r: def.prop?.[0], s: def.prop?.[1] };
+  const pal = { O: OUTLINE, w: WHITE, x: MOUTH, y: def.iris, Q: def.fx, r: def.prop?.[0], s: def.prop?.[1], z: def.hairHi };
   for (const [key, glyphs] of RAMPS) {
     const ramp = def[key] || [];
     [...glyphs].forEach((g, i) => { if (ramp[i]) pal[g] = ramp[i]; });
@@ -40,5 +41,5 @@ export function buildPalette(def) {
 // Groups for the viewer swatch panel.
 export const PALETTE_GROUPS = [
   ['Skin', '12345'], ['Hair', 'abcd'], ['Cloth A', 'efgh'], ['Cloth B', 'ijkl'], ['Trim', 'mnop'],
-  ['Misc', 'Owyxrs' + 'Q'],
+  ['Misc', 'Owyxrsz' + 'Q'],
 ];

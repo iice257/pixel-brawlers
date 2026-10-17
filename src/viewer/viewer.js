@@ -183,6 +183,10 @@ function renderCompare() {
   }
 }
 
+// ?view=compare | parts | palettes shows only that section (for QA screenshots)
+const only = new URLSearchParams(location.search).get('view');
+if (only) document.querySelectorAll('main > section').forEach((sec) => { if (!sec.querySelector('#' + only)) sec.style.display = 'none'; });
+
 function renderAll() { renderParts(); renderPalettes(); renderCompare(); }
 $('outlineToggle').addEventListener('change', renderAll);
 renderParts();
