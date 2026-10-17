@@ -77,6 +77,7 @@ A grid is an array of equal-length strings. One character = one pixel. Shared gl
 | `y` | iris (per-fighter eye colour) |
 | `x` | mouth interior / deep shadow (`#3a0f1c`) |
 | `r` `s` | prop dark / prop light (toothpick, tape, etc.) |
+| `z` | hair accent: brightest 1px sparkle on hair (SURGE `#8ff0f0`, BRICK `#fffbd0`) |
 | `Q` | FX glow colour (per-fighter signature energy colour) |
 
 Example (8x4, format only, not art):
