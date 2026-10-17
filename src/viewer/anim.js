@@ -162,7 +162,7 @@ if (contact) {
   const scale = +(qs.get('scale') || 1);
   const ids = qs.get('fighter') ? [qs.get('fighter')] : IDS;
   const only = qs.get('only');                                  // optional regex on animation names
-  const CW = 140, CH = 118, FL = 110, LAB = 12, COLS = +(qs.get('cols') || 14);
+  const CW = 150, CH = 118, FL = 110, LAB = 12, COLS = +(qs.get('cols') || 14);
   for (const id of ids) {
     const items = [];
     const seen = new Set();
@@ -183,7 +183,7 @@ if (contact) {
       o.strokeStyle = '#2a1d4a'; o.strokeRect(0.5, 0.5, CW - 1, CH + LAB - 1);
       o.beginPath(); o.moveTo(0, LAB + FL + 0.5); o.lineTo(CW, LAB + FL + 0.5); o.stroke();
       const b = tryBake(id, pose);
-      if (b) { const t = document.createElement('canvas'); t.width = CW; t.height = CH + LAB; drawBaked(t.getContext('2d'), b, CW / 2 - 22, LAB + FL, 1); o.drawImage(t, 0, 0); }
+      if (b) { const t = document.createElement('canvas'); t.width = CW; t.height = CH + LAB; drawBaked(t.getContext('2d'), b, CW / 2 - 38, LAB + FL, 1); o.drawImage(t, 0, 0); }
       c.drawImage(off, 0, 0, CW, CH + LAB, cx * scale, cy * scale, CW * scale, (CH + LAB) * scale);
       c.fillStyle = b ? '#b9a8f0' : '#ff6b6b';
       c.fillText(b ? pose : 'MISSING ' + pose, (cx + 3) * scale, (cy + 9) * scale);

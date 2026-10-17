@@ -53,7 +53,7 @@ Object.assign(ANIMS, {
   jHP:   air('jHP', [7, 6, 0],  [4, 14, 38, 36]),
   jLK:   air('jLK', [4, 10, 0], [2, 10, 36, 22]),
   jHK:   air('jHK', [9, 6, 0],  [2, 8, 46, 28]),
-  throw: attack('throw', [5, 2, 24], [1, 1, 3], [0, 40, 59, 30]),   // reach / grab (active) / hold / release / recover; box far edge 59 = what the rig's arm length can reach (GAME_DESIGN says 34; flagged in TUNING_LOG)
+  throw: attack('throw', [5, 2, 24], [1, 1, 3], [0, 40, 42, 30]),   // reach / grab (active) / hold / release / recover; box far edge 42 = GAME_DESIGN throw range
 });
 
 // Which limb group(s) carry the hit: the reach check only measures those parts (hand/foot tip).

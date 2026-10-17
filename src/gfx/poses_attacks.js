@@ -48,7 +48,7 @@ export function attackPoses({ merge, guard, crouchHold, jumpApex }) {
   L['2HK_0'] = merge(crouchHold, {});
   L['2HK_1'] = merge(crouchHold, { hips: { r: 30 }, torso: { v: 'lean_back', r: -15 }, head: { r: 0 }, legF: { h: 90, k: 135 }, legB: { h: 105, k: 165 } });
   L['2HK_2'] = merge(crouchHold, { root: [16, 0], hips: { r: 15 }, torso: { v: 'lean_back', r: -30 }, head: { r: 15 }, legF: { h: 90, k: 0, fr: 75, foot: 'kick' }, legB: { h: 105, k: 165 },
-    fx: [{ type: 'arc', c: 'hipF', r: 52, a0: 20, a1: 85 }] });
+    fx: [{ type: 'arc', c: 'hipF', r: 74, a0: 68, a1: 118, w: 5 }] });
   L['2HK_3'] = merge(crouchHold, { legF: { h: 90, k: 105 } });
   L['2HK_4'] = merge(crouchHold, {});
 
@@ -64,8 +64,8 @@ export function attackPoses({ merge, guard, crouchHold, jumpApex }) {
   L.jHK_1 = merge(air, { torso: { v: 'lean_back', r: -30 }, legF: { h: 60, k: 0, fr: 60, foot: 'kick' }, legB: { h: 15, k: 75 } });
 
   // ---- throw: reach, grab, hold (lift), release, recover
-  L.throw_0 = merge(guard, { torso: { r: 15 }, armF: open(75, 15), armB: open(60, 15) });
-  L.throw_1 = merge(guard, { root: [0, 0], torso: { r: 15 }, hips: { r: 15 }, armF: open(45, 15), armB: open(30, 15), legF: { h: 45, k: 30 }, legB: { h: -30, k: 15 } });
+  L.throw_0 = merge(guard, { torso: { r: 0 }, armF: open(30, 60), armB: open(15, 75) });
+  L.throw_1 = merge(guard, { root: [-2, 0], torso: { r: 0 }, armF: open(0, 90), armB: open(-15, 90), legF: { h: 45, k: 30 }, legB: { h: -30, k: 15 } });
   L.throw_2 = merge(guard, { root: [2, 0], torso: { r: 0 }, armF: open(150, 0), armB: open(135, 15) });
   L.throw_3 = merge(guard, { root: [-2, 0], torso: { r: -15 }, armF: open(60, 30), armB: open(45, 30) });
   L.throw_4 = merge(guard, {});
