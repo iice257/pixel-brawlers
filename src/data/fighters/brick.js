@@ -51,5 +51,5 @@ export const parts = {
   ],
 };
 
-// Attach pivots: where each part joins its parent (x,y inside the grid).
-export const pivots = {'head_neutral': [16, 30]};
+// Joint pivots per part: name -> [x,y] inside the grid (where it hangs off its parent / children attach).
+export const pivots = {'head_neutral': {'neck': [16, 30]}};

@@ -90,24 +90,28 @@ refImg.onerror = () => { $('err').style.display = 'inline'; };
 refImg.src = 'brainstorm/reference/characters-reference.png';
 
 /* ---------------- parts / palettes / compare ---------------- */
+const PIVOT_COLORS = ['#ff00ff', '#00ffcc', '#ffee00', '#ff8800'];
+function drawPivots(ctx, pivots, scale) {
+  const pad = outlineOn() ? 1 : 0;
+  Object.values(pivots).forEach(([x, y], i) => {
+    const px = (x + pad) * scale + scale / 2, py = (y + pad) * scale + scale / 2, r = Math.max(3, scale);
+    ctx.strokeStyle = PIVOT_COLORS[i % PIVOT_COLORS.length]; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px - r, py); ctx.lineTo(px + r, py); ctx.moveTo(px, py - r); ctx.lineTo(px, py + r); ctx.stroke();
+  });
+}
+
 function partBlock(label, rows, pal, pivot) {
   const [w, h] = gridSize(rows);
   const wrap = document.createElement('div');
   wrap.style.marginBottom = '18px';
-  wrap.innerHTML = `<h3>${label} <span style="color:var(--muted)">${w}x${h} pivot ${pivot ? pivot.join(',') : '-'}</span></h3>`;
+  wrap.innerHTML = `<h3>${label} <span style="color:var(--muted)">${w}x${h} ${pivot ? Object.entries(pivot).map(([k, v]) => `${k}:${v}`).join(' ') : ''}</span></h3>`;
   const row = document.createElement('div');
   row.className = 'row';
   for (const scale of [1, 3, 8]) {
     const box = document.createElement('div');
     box.className = 'box';
     const cv = gridToCanvas(rows, pal, { scale, outline: outlineOn() });
-    if (pivot && scale === 8) {
-      const ctx = cv.getContext('2d');
-      const pad = outlineOn() ? 1 : 0;
-      const px = (pivot[0] + pad) * scale + scale / 2, py = (pivot[1] + pad) * scale + scale / 2;
-      ctx.strokeStyle = '#ff00ff'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(px - 8, py); ctx.lineTo(px + 8, py); ctx.moveTo(px, py - 8); ctx.lineTo(px, py + 8); ctx.stroke();
-    }
+    if (pivot && scale === 8) drawPivots(cv.getContext('2d'), pivot, scale);
     box.append(cv);
     const cap = document.createElement('div'); cap.className = 'cap'; cap.textContent = `${scale}x`;
     box.append(cap);
@@ -146,6 +150,28 @@ function renderPalettes() {
     }
     root.append(wrap);
   }
+}
+
+function renderSheet() {
+  const root = $('sheet');
+  root.innerHTML = '';
+  const fid = new URLSearchParams(location.search).get('fighter') || 'surge';
+  const f = FIGHTERS[fid];
+  const pal = buildPalette(f.palette);
+  const scale = 3;
+  const wrap = document.createElement('div');
+  wrap.className = 'row';
+  for (const [name, rows] of Object.entries(f.parts)) {
+    const [w, h] = gridSize(rows);
+    const box = document.createElement('div');
+    box.className = 'box';
+    const cv = gridToCanvas(rows, pal, { scale, outline: outlineOn() });
+    const pv = f.pivots?.[name];
+    if (pv) drawPivots(cv.getContext('2d'), pv, scale);
+    box.append(cv, Object.assign(document.createElement('div'), { className: 'cap', textContent: `${name} ${w}x${h}` }));
+    wrap.append(box);
+  }
+  root.append(wrap);
 }
 
 function renderCompare() {
@@ -187,7 +213,8 @@ function renderCompare() {
 const only = new URLSearchParams(location.search).get('view');
 if (only) document.querySelectorAll('main > section').forEach((sec) => { if (!sec.querySelector('#' + only)) sec.style.display = 'none'; });
 
-function renderAll() { renderParts(); renderPalettes(); renderCompare(); }
+function renderAll() { renderParts(); renderPalettes(); renderCompare(); renderSheet(); }
 $('outlineToggle').addEventListener('change', renderAll);
 renderParts();
 renderPalettes();
+renderSheet();

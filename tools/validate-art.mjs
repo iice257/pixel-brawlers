@@ -16,7 +16,12 @@ for (const file of files) {
     for (const [name, rows] of Object.entries(mod[group] ?? {})) {
       const errs = validateGrid(`${id}.${name}`, rows);
       if (errs.length) { failed = true; errs.forEach((e) => console.error(`ERR ${e}`)); }
-      else { const [w, h] = gridSize(rows); console.log(`OK  ${id}.${name} ${w}x${h}`); }
+      else {
+        const [w, h] = gridSize(rows);
+        const bad = Object.entries(mod.pivots?.[name] ?? {}).filter(([, [x, y]]) => x < 0 || y < 0 || x >= w || y >= h);
+        if (bad.length) { failed = true; console.error(`ERR ${id}.${name}: pivot outside grid: ${bad.map(([k]) => k).join(', ')}`); }
+        else console.log(`OK  ${id}.${name} ${w}x${h}`);
+      }
     }
   }
 }

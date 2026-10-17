@@ -47,3 +47,32 @@ export function rim(g, mat, { light, dark, useRight = true, useLeft = true }) {
 }
 // Emit a grid as a JS array literal body (4-space indent).
 export const fmt = (g) => rows(g).map((r) => `    '${r}',`).join('\n');
+
+// Bevel-shade a polygon form from upper-left light. `ramp` is the glyph ramp dark..light (e.g. '12345'),
+// `base` its base index (2 -> tone 3). Edge facing up/left goes lighter, down/right darker.
+// opts: only (glyphs that may be overwritten), spread (bevel width, default 3), blobs [[x,y,r],...] -> top tone.
+export function form(g, poly, ramp, base, opts = {}) {
+  const { only, spread = 2, blobs = [] } = opts;
+  const inside = (x, y) => inPoly(x, y, poly);
+  const run = (x, y, dx, dy) => { let n = 0; while (n < 14 && inside(x + dx * (n + 1), y + dy * (n + 1))) n++; return n; };
+  for (let y = 0; y < H(g); y++) for (let x = 0; x < W(g); x++) {
+    if (!inside(x, y) || (only && !only.includes(g[y][x]))) continue;
+    const dl = Math.min(run(x, y, -1, 0), run(x, y, 0, -1), run(x, y, -1, -1));
+    const dd = Math.min(run(x, y, 1, 0), run(x, y, 0, 1), run(x, y, 1, 1));
+    let t = base;
+    if (dd < spread && dl - dd >= 1) t = base - 1;
+    else if (dl < spread && dd - dl >= 1) t = base + 1;
+    g[y][x] = ramp[Math.max(0, Math.min(ramp.length - 1, t))];
+  }
+  for (const [bx, by, r] of blobs) for (let y = by - r; y <= by + r; y++) for (let x = bx - r; x <= bx + r; x++)
+    if (inside(x, y) && (x - bx) ** 2 + (y - by) ** 2 <= r * r + 1 && (!only || only.includes(g[y][x]))) g[y][x] = ramp[ramp.length - 1];
+}
+// Shift each row horizontally by round(shear * (1 - y/(h-1))): top moves, bottom stays. Returns a new wider grid.
+export function shearRows(g, shear, outW) {
+  const h = H(g), out = grid(outW, h), pad = shear < 0 ? -shear : 0;
+  for (let y = 0; y < h; y++) {
+    const s = Math.round(shear * (1 - y / (h - 1))) + pad;
+    for (let x = 0; x < W(g); x++) if (g[y][x] !== '.' && x + s >= 0 && x + s < outW) out[y][x + s] = g[y][x];
+  }
+  return out;
+}

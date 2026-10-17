@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { rows } from '../blockin.mjs';
 import { surgeHead } from './surge_head.mjs';
 import { brickHead } from './brick_head.mjs';
+import { SURGE_BODY, SURGE_PIVOTS } from './surge_body.mjs';
 
 const OUT = fileURLToPath(new URL('../../src/data/fighters/', import.meta.url));
 const SKIN = ['#80433d', '#ee8b75', '#f6b09a', '#fecbb2', '#fdefe1'];
@@ -21,8 +22,8 @@ const defs = {
       trim: ['#0b4a66', '#1788ac', '#35c8e0', '#b8f6ff'],
       iris: '#3b82c4', prop: ['#1d3e5d', '#5ea0c1'], fx: '#35e0ff',
     },
-    parts: { head_neutral: surgeHead() },
-    pivots: { head_neutral: [16, 30] },
+    parts: { head_neutral: surgeHead(), ...Object.fromEntries(Object.entries(SURGE_BODY).map(([k, fn]) => [k, fn()])) },
+    pivots: { head_neutral: { neck: [16, 30] }, ...SURGE_PIVOTS },
   },
   brick: {
     note: 'BRICK "THE HEADLINER": blond tank-top homage. Authored facing RIGHT (three-quarter front).',
@@ -35,7 +36,7 @@ const defs = {
       iris: '#4f8fc0', prop: ['#1d3e5d', '#5ea0c1'], fx: '#ffd84a',
     },
     parts: { head_neutral: brickHead() },
-    pivots: { head_neutral: [16, 30] },
+    pivots: { head_neutral: { neck: [16, 30] } },
   },
 };
 
@@ -53,7 +54,7 @@ export const parts = {
 ${fmtParts(d.parts)}
 };
 
-// Attach pivots: where each part joins its parent (x,y inside the grid).
+// Joint pivots per part: name -> [x,y] inside the grid (where it hangs off its parent / children attach).
 export const pivots = ${lit(d.pivots)};
 `;
   writeFileSync(OUT + id + '.js', src);
