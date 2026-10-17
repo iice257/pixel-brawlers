@@ -40,12 +40,13 @@ export function resolvePose(fighter, pose) {
 
   const [rdx, rdy] = pose.root ?? [0, 0];
   const hipsTheta = rad(quant(pose.hips?.r));
-  const hips = place('hips', 'hips', 'torso', [rdx, rdy], hipsTheta);
+  const hipsPart = pose.hips?.v ? `hips_${pose.hips.v}` : 'hips';
+  const hips = place('hips', hipsPart, 'torso', [rdx, rdy], hipsTheta);
   joints.root = [rdx, rdy];
 
   const tv = pose.torso?.v ?? 'stand';
   const torsoTheta = hipsTheta + rad(quant(pose.torso?.r));
-  const tAt = toWorld(hips, need('hips', 'torso'));
+  const tAt = toWorld(hips, need(hipsPart, 'torso'));
   const tdy = pose.torso?.dy ?? 0, tdx = pose.torso?.dx ?? 0;
   const torso = place('torso', `torso_${tv}`, 'hips', [tAt[0] + tdx, tAt[1] + tdy], torsoTheta);
 
@@ -71,7 +72,7 @@ export function resolvePose(fighter, pose) {
   for (const side of ['F', 'B']) {
     const g = 'leg' + side, l = pose['leg' + side] ?? {};
     const h = quant(l.h), k = quant(l.k), fr = quant(l.fr);
-    const hp = toWorld(hips, need('hips', 'hip' + side));
+    const hp = toWorld(hips, need(hipsPart, 'hip' + side));
     joints['hip' + side] = hp;
     const th = place(g, 'thigh', 'hip', hp, rad(-h));
     const kn = toWorld(th, need('thigh', 'knee'));

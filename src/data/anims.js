@@ -61,6 +61,37 @@ const LIMBS = { LP: ['armF'], HP: ['armF'], '2LP': ['armF'], '2HP': ['armF'], jL
   LK: ['legF'], HK: ['legF'], '2LK': ['legF'], '2HK': ['legF'], jLK: ['legF'], jHK: ['legF'], throw: ['armF', 'armB'] };
 for (const [name, limb] of Object.entries(LIMBS)) ANIMS[name].limb = limb;
 
+// ---- reactions, KO, win, intro, taunt (Task 1.8). Timings are placeholders for the engine's stun values (GAME_DESIGN 3.x).
+Object.assign(ANIMS, {
+  block_stand_in:    { loop: false, frames: seq('block_stand_in', 1, 3) },
+  block_stand_hold:  { loop: true,  frames: seq('block_stand_hold', 1, 4) },
+  block_crouch_in:   { loop: false, frames: seq('block_crouch_in', 1, 3) },
+  block_crouch_hold: { loop: true,  frames: seq('block_crouch_hold', 1, 4) },
+  hit_high:   { loop: false, frames: seq('hit_high', 2, [4, 8]), holdLast: true },
+  hit_low:    { loop: false, frames: seq('hit_low', 2, [4, 8]), holdLast: true },
+  hit_body:   { loop: false, frames: seq('hit_body', 2, [4, 8]), holdLast: true },
+  hit_air:    { loop: false, frames: seq('hit_air', 4, [6, 8, 8, 8]), holdLast: true },
+  knockdown:  { loop: false, frames: seq('knockdown', 4, [6, 6, 6, 10]), holdLast: true },
+  lying:      { loop: true,  frames: seq('lying', 1, 8) },
+  getup:      { loop: false, frames: seq('getup', 4, 6) },
+  ko:         { loop: false, frames: seq('ko', 5, [8, 8, 8, 12, 30]), holdLast: true },
+  thrown:     { loop: false, frames: seq('thrown', 3, [8, 8, 8]), holdLast: true },
+  win_a:      { loop: false, frames: seq('win_a', 3, [8, 8, 40]), holdLast: true },
+  win_b:      { loop: false, frames: seq('win_b', 3, [8, 8, 40]), holdLast: true },
+  intro:      { loop: false, frames: seq('intro', 6, [16, 16, 16, 16, 12, 12]), holdLast: true },
+  taunt:      { loop: false, frames: seq('taunt', 3, [10, 10, 10]) },
+});
+
+// Every animation ART_BIBLE section 6 asks for, with its unique pose count. The viewer lists missing ones in red.
+export const REQUIRED = {
+  idle: 6, walk_f: 8, walk_b: 8, crouch_in: 2, crouch_hold: 1, crouch_out: 2, jump_prep: 1, jump_rise: 1, jump_apex: 1, jump_fall: 2, jump_land: 1,
+  jump_f: 4, jump_b: 4, dash_f: 3, dash_b: 3,
+  LP: 3, HP: 5, LK: 3, HK: 5, '2LP': 3, '2LK': 3, '2HP': 5, '2HK': 5, jLP: 2, jHP: 2, jLK: 2, jHK: 2, throw: 5,
+  block_stand_in: 1, block_stand_hold: 1, block_crouch_in: 1, block_crouch_hold: 1,
+  hit_high: 2, hit_low: 2, hit_body: 2, hit_air: 4, knockdown: 4, lying: 1, getup: 4, ko: 5, thrown: 3,
+  win_a: 3, win_b: 3, intro: 6, taunt: 3,
+};
+
 // Per-fighter frame-data tweaks (GAME_DESIGN 3.3). Only sar/hitbox change; frames are re-derived.
 export const FIGHTER_ANIMS = {
   surge: { LP: { sar: [3, 2, 6] }, '2LP': { sar: [4, 2, 6] }, HP: { sar: [8, 3, 13] }, LK: { sar: [6, 3, 9], hitbox: [6, 44, 44, 14] }, HK: { sar: [10, 4, 17] } },

@@ -3,7 +3,7 @@
 import { buildPalette } from '../gfx/palette.js';
 import { bakePose, drawBaked, auditBaked } from '../gfx/baker.js';
 import { poseLibrary } from '../gfx/poses.js';
-import { animsFor, animTotal, frameAt } from '../data/anims.js';
+import { animsFor, animTotal, frameAt, REQUIRED } from '../data/anims.js';
 import * as surge from '../data/fighters/surge.js';
 import * as brick from '../data/fighters/brick.js';
 
@@ -148,6 +148,9 @@ if (root) {
       const sar = a0.sar ? a0.sar.join('/') : '';
       rows.push(`<tr><td>${name}</td><td>${a0.frames.length}</td><td>${animTotal(a0)}</td><td>${sar}</td><td>${a0.loop ? 'loop' : ''}</td>${cells.join('')}</tr>`);
     }
+    const lacking = Object.entries(REQUIRED).flatMap(([n, cnt]) => IDS.filter((id) => !ANIM[id][n] || ANIM[id][n].frames.length < cnt).map((id) => `${id}:${n}`));
+    allOk = allOk && !lacking.length;
+    if (lacking.length) rows.push(...lacking.map((m) => `<tr><td colspan="7" class="bad">MISSING ${m}</td></tr>`));
     cov.innerHTML = `<table><thead><tr><th>animation</th><th>frames</th><th>ticks</th><th>S/A/R</th><th></th><th>surge</th><th>brick</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
     cov.dataset.allOk = String(allOk);
     $('coverageSummary').textContent = allOk ? 'coverage: ALL GREEN' : 'coverage: has failures';
@@ -162,7 +165,7 @@ if (contact) {
   const scale = +(qs.get('scale') || 1);
   const ids = qs.get('fighter') ? [qs.get('fighter')] : IDS;
   const only = qs.get('only');                                  // optional regex on animation names
-  const CW = 150, CH = 118, FL = 110, LAB = 12, COLS = +(qs.get('cols') || 14);
+  const CW = 160, CH = 118, FL = 110, LAB = 12, COLS = +(qs.get('cols') || 14);
   for (const id of ids) {
     const items = [];
     const seen = new Set();
@@ -183,7 +186,7 @@ if (contact) {
       o.strokeStyle = '#2a1d4a'; o.strokeRect(0.5, 0.5, CW - 1, CH + LAB - 1);
       o.beginPath(); o.moveTo(0, LAB + FL + 0.5); o.lineTo(CW, LAB + FL + 0.5); o.stroke();
       const b = tryBake(id, pose);
-      if (b) { const t = document.createElement('canvas'); t.width = CW; t.height = CH + LAB; drawBaked(t.getContext('2d'), b, CW / 2 - 38, LAB + FL, 1); o.drawImage(t, 0, 0); }
+      if (b) { const t = document.createElement('canvas'); t.width = CW; t.height = CH + LAB; drawBaked(t.getContext('2d'), b, 62, LAB + FL, 1); o.drawImage(t, 0, 0); }
       c.drawImage(off, 0, 0, CW, CH + LAB, cx * scale, cy * scale, CW * scale, (CH + LAB) * scale);
       c.fillStyle = b ? '#b9a8f0' : '#ff6b6b';
       c.fillText(b ? pose : 'MISSING ' + pose, (cx + 3) * scale, (cy + 9) * scale);

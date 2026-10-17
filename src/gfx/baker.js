@@ -151,7 +151,7 @@ export function bakePose(fighter, pose, only = null) {   // only: optional list 
   mc.imageSmoothingEnabled = false;
   mc.translate(w, 0); mc.scale(-1, 1); mc.drawImage(canvas, 0, 0);
   // feet origin: x = hips root column, y = the row just under the lowest foot pixel (the floor line)
-  const floorRow = feet.bottom + 1;
+  const floorRow = pose.floor === 'body' ? y1 + 1 : feet.bottom + 1;   // floor: 'body' = lying/tumbling poses sit on their lowest drawn pixel
   const originX = OX, originY = floorRow;
   const ox = originX - x0, oy = originY - y0;
   const j = {};

@@ -8,6 +8,8 @@ import { surgeHead } from './surge_head.mjs';
 import { brickHead } from './brick_head.mjs';
 import { SURGE_BODY, SURGE_PIVOTS } from './surge_body.mjs';
 import { BRICK_BODY, BRICK_PIVOTS } from './brick_body.mjs';
+import { squash } from './fallen.mjs';
+import { surgeHeadHit, surgeHeadKo, brickHeadHit, brickHeadKo } from './heads_react.mjs';
 
 const OUT = fileURLToPath(new URL('../../src/data/fighters/', import.meta.url));
 const SKIN = ['#80433d', '#ee8b75', '#f6b09a', '#fecbb2', '#fdefe1'];
@@ -23,8 +25,8 @@ const defs = {
       trim: ['#0b4a66', '#1788ac', '#35c8e0', '#b8f6ff'],
       iris: '#3b82c4', prop: ['#1d3e5d', '#5ea0c1'], fx: '#35e0ff',
     },
-    parts: { head_neutral: surgeHead(), ...Object.fromEntries(Object.entries(SURGE_BODY).map(([k, fn]) => [k, fn()])) },
-    pivots: { head_neutral: { neck: [16, 32] }, ...SURGE_PIVOTS },
+    parts: { head_neutral: surgeHead(), head_hit: surgeHeadHit(), head_ko: surgeHeadKo(), ...Object.fromEntries(Object.entries(SURGE_BODY).map(([k, fn]) => [k, fn()])) },
+    pivots: { head_neutral: { neck: [16, 32] }, head_hit: { neck: [16, 32] }, head_ko: { neck: [16, 32] }, ...SURGE_PIVOTS },
   },
   brick: {
     note: 'BRICK "THE HEADLINER": blond tank-top homage. Authored facing RIGHT (three-quarter front).',
@@ -36,8 +38,8 @@ const defs = {
       trim: ['#1c1416', '#6a4a2a', '#9a6c38', '#ffd84a'],
       iris: '#4f8fc0', prop: ['#1d3e5d', '#5ea0c1'], fx: '#ffd84a',
     },
-    parts: { head_neutral: brickHead(), ...Object.fromEntries(Object.entries(BRICK_BODY).map(([k, fn]) => [k, fn()])) },
-    pivots: { head_neutral: { neck: [16, 32] }, ...BRICK_PIVOTS },
+    parts: { head_neutral: brickHead(), head_hit: brickHeadHit(), head_ko: brickHeadKo(), ...Object.fromEntries(Object.entries(BRICK_BODY).map(([k, fn]) => [k, fn()])) },
+    pivots: { head_neutral: { neck: [16, 32] }, head_hit: { neck: [16, 32] }, head_ko: { neck: [16, 32] }, ...BRICK_PIVOTS },
   },
 };
 
@@ -45,6 +47,14 @@ const lit = (v) => JSON.stringify(v).replace(/"/g, "'").replace(/,/g, ', ').repl
 const fmtPalette = (p) => '{\n' + Object.entries(p).map(([k, v]) => `  ${k}: ${lit(v)},`).join('\n') + '\n}';
 const fmtParts = (parts) => Object.entries(parts).map(([name, g]) =>
   `  ${name}: [\n${rows(g).map((r) => `    '${r}',`).join('\n')}\n  ],`).join('\n');
+
+// Fallen torso + hips (see fallen.mjs): added to every fighter from its own standing parts.
+for (const d of Object.values(defs)) {
+  const t = squash(d.parts.torso_stand.map((r) => (Array.isArray(r) ? r.join('') : r)), d.pivots.torso_stand);
+  const h = squash(d.parts.hips.map((r) => (Array.isArray(r) ? r.join('') : r)), d.pivots.hips, 2);
+  d.parts.torso_fallen = t.rows.map((r) => [...r]); d.pivots.torso_fallen = t.pivots;
+  d.parts.hips_fallen = h.rows.map((r) => [...r]); d.pivots.hips_fallen = h.pivots;
+}
 
 for (const [id, d] of Object.entries(defs)) {
   const src = `// ${d.note}

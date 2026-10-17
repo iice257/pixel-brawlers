@@ -75,3 +75,14 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Throw: GAME_DESIGN range 34 is not reachable with natural grab arms (arm length gives ~59). Throw hitbox far edge set to 59 and flagged for the orchestrator.
 - Smears (`pose.fx` arcs) on HP_2, HK_2, 2HP_2, 2HK_2. 2HK_2's arc is mostly clipped by the foot tip and reads as a small blob.
 - Contact sheet cells widened (140px) so extended limbs are not clipped. Sheet: `media/qa/phase1-1.7-contact.png`.
+
+## 1.8 Reaction, KO, win and intro poses
+
+- New: `src/gfx/poses_react.js` (block, hit_high/low/body, hit_air, knockdown, lying, getup, ko, thrown, win_a/b, intro, taunt) and the anims in `src/data/anims.js`. `REQUIRED` there lists every ART_BIBLE section 6 animation; the viewer coverage panel prints MISSING rows in red.
+- Throw reach now 42 (orchestrator decision): grab arms bent with elbows tucked (armF 0/90, armB -15/90), no lean, root dx 0 -> tip 44/45. Throw hitbox far edge 42.
+- Heads: `head_hit` (brow pinched, eyes shut, mouth open with gritted teeth) and `head_ko` (X eyes, slack mouth) for both fighters, derived from the neutral head in `tools/gen/heads_react.mjs`. Head tilts kept to -15 so the face stays readable at 1x.
+- Pre-rotated parts: `torso_fallen` and `hips_fallen` (new rig variant `hips.v`). They are the standing parts with every third column dropped (`tools/gen/fallen.mjs`), so a 90 degree rotation gives a lying body about 28px thick instead of the 44px chest. Rotation is lossless at 90.
+- `floor: 'body'` on a pose makes the sprite origin the row under the lowest drawn pixel (lying / tumbling poses have no foot on the ground). Used by hit_air, knockdown, lying, getup_0/1, ko_1..4, thrown.
+- Lying height: ~48px counting the upright feet (fr 90) and arms; the body itself is ~28px. Engine hurtbox for lying comes from move data (GAME_DESIGN), not the sprite.
+- 2HK smear is now a big 3-tone arc ahead of the foot, fully visible. No pre-rotated leg_kick needed: the 60-75 degree jaggies are not noticeable at 3x.
+- Weak spots: surge intro_0 "arms crossed" reads as a relaxed stance; true back-turned intro is not possible with front/side-only parts. win_a_2 back arm tucks behind the head.

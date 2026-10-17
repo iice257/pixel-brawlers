@@ -105,7 +105,7 @@ const dashB = [
 ];
 
 // ---------------------------------------------------------------------------------------------- library
-function baseLib() {
+function baseLib(fighterId) {
   const L = {};
   BOB.forEach((dy, i) => { L['idle_' + i] = merge(guard, { torso: { dy } }); });
   for (let i = 0; i < 8; i++) { L['walk_f_' + i] = walkF(i); L['walk_b_' + i] = walkB(i); }
@@ -121,11 +121,13 @@ function baseLib() {
   dashF.forEach((p, i) => { L['dash_f_' + i] = p; });
   dashB.forEach((p, i) => { L['dash_b_' + i] = p; });
   Object.assign(L, attackPoses({ merge, guard, crouchHold, jumpApex }));
+  Object.assign(L, reactPoses({ merge, guard, crouchHold, fighterId }));
   return L;
 }
 
 // Attack poses live in poses_attacks.js (filled by Task 1.7); kept as a hook so the library stays one namespace.
 import { attackPoses } from './poses_attacks.js';
+import { reactPoses } from './poses_react.js';
 
 // Brick's longer arms / shorter legs need a few attack poses pulled in so the tip lands on his hitbox (viewer reach check).
 const BRICK_FIX = {
@@ -135,7 +137,7 @@ const BRICK_FIX = {
 
 const isLoco = (n) => /^(idle|walk|dash)_/.test(n);
 export function poseLibrary(fighterId) {
-  const lib = baseLib();
+  const lib = baseLib(fighterId);
   const style = OVERRIDES[fighterId], loco = LOCO_STYLE[fighterId];
   const out = {};
   for (const [name, pose] of Object.entries(lib)) {
