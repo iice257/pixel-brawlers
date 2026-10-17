@@ -85,7 +85,7 @@ if (root) {
   root.append(cv);
   const ctx = cv.getContext('2d');
 
-  $('animFighter').value = qs.get('fighter') || 'surge';
+  $('animFighter').value = IDS.includes(qs.get('fighter')) ? qs.get('fighter') : 'surge';
   $('animScale').value = qs.get('scale') || '4';
   $('animPlay').checked = qs.get('paused') !== '1';
   $('animJoints').checked = qs.get('joints') === '1';
@@ -316,7 +316,7 @@ const sheets = [];
 if (contact) {
   const m = document.querySelector('main'); m.style.maxWidth = 'none'; m.style.margin = '0';
   const scale = +(qs.get('scale') || 1);
-  const ids = qs.get('fighter') ? [qs.get('fighter')] : IDS;
+  const ids = IDS.includes(qs.get('fighter')) ? [qs.get('fighter')] : IDS;
   const only = qs.get('only');                                  // optional regex on animation names
   const CW = 160, CH = 118, FL = 110, LAB = 12, COLS = +(qs.get('cols') || 14);
   for (const id of ids) {
