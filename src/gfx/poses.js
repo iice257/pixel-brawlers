@@ -17,7 +17,15 @@ const guard = {
 };
 
 const OVERRIDES = {
-  // fighter id -> partial pose merged over `guard` (BRICK adds his slouch in Task 1.5)
+  // fighter id -> partial pose merged over `guard`
+  brick: {                                  // slouchier: hunched torso, chin forward, front shoulder dropped, loose low guard
+    torso: { v: 'lean', r: 15 },
+    head: { r: -15, dx: 1 },
+    armF: { s: 30, e: 105, w: -30, hand: 'guard' },
+    armB: { s: 15, e: 45, w: 0, hand: 'fist' },
+    legF: { h: 30, k: 30, foot: 'flat' },
+    legB: { h: -30, k: 30, foot: 'flat' },
+  },
 };
 
 const merge = (a, b) => {

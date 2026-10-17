@@ -48,3 +48,10 @@ Part sizes (WxH), all within the ART_BIBLE rig table +-3 px. Pivots are `pivots[
 - Baker: alpha threshold 128, per-part 1px outline, back arm/leg x0.82, and every opaque pixel is snapped back to the palette after rotation (blended edge colours otherwise showed up: 22 stray colours -> 0).
 - Feet origin = hips root column, floor = row under the lowest foot pixel (`floorGap` 1 = the foot outline row).
 - Guard stance: legF h30/k45, legB h-15/k30 (feet apart), armF s45/e120/w-30 guard hand, armB s30/e60 fist poking out in front of the chest, torso variant `lean`. Idle bob is torso dy [1,1,0,0,1,1], each held 8 ticks.
+
+## 1.5 BRICK body parts and idle
+- BRICK trim palette changed (was brown/gold set): `['#1c1416','#6a4a2a','#9a6c38','#ffd84a']` = black gloves, brown boots/belt, light brown, gold buckle.
+- Same 15 body parts, sizes and pivot names as SURGE except arm_upper 16x22 (bigger bicep; shoulder [8,3], elbow [8,19]) and hand grids 15 wide; torso pivots computed from shear.
+- Tank torso: white `h` with grey `g/f` folds, `O` outline at neckline and armholes. Gloves are black with brown sheen row.
+- BRICK idle override in poses.js: torso lean r15, head r-15 dx1, armF s30/e105, armB s15/e45, legs wider (legB h-30). Height 104, AA 0, stray colours 0 (same as SURGE).
+- Not done: SURGE thigh/shin polish (low priority).

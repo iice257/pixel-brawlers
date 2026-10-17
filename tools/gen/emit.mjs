@@ -7,6 +7,7 @@ import { rows } from '../blockin.mjs';
 import { surgeHead } from './surge_head.mjs';
 import { brickHead } from './brick_head.mjs';
 import { SURGE_BODY, SURGE_PIVOTS } from './surge_body.mjs';
+import { BRICK_BODY, BRICK_PIVOTS } from './brick_body.mjs';
 
 const OUT = fileURLToPath(new URL('../../src/data/fighters/', import.meta.url));
 const SKIN = ['#80433d', '#ee8b75', '#f6b09a', '#fecbb2', '#fdefe1'];
@@ -32,11 +33,11 @@ const defs = {
       hair: ['#9d7a1a', '#d9a82a', '#ffd84a', '#fff59a'], hairHi: '#fffbd0',
       clothA: ['#60605f', '#a9a9a9', '#d7d7d7', '#fefefe'],
       clothB: ['#14213f', '#23407a', '#3866b8', '#6f9be0'],
-      trim: ['#2a1a14', '#6a4a20', '#c88a20', '#ffd84a'],
+      trim: ['#1c1416', '#6a4a2a', '#9a6c38', '#ffd84a'],
       iris: '#4f8fc0', prop: ['#1d3e5d', '#5ea0c1'], fx: '#ffd84a',
     },
-    parts: { head_neutral: brickHead() },
-    pivots: { head_neutral: { neck: [16, 32] } },
+    parts: { head_neutral: brickHead(), ...Object.fromEntries(Object.entries(BRICK_BODY).map(([k, fn]) => [k, fn()])) },
+    pivots: { head_neutral: { neck: [16, 32] }, ...BRICK_PIVOTS },
   },
 };
 
